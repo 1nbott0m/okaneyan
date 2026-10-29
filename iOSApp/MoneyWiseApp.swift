@@ -955,7 +955,7 @@ private struct RootView: View {
             .toolbar {
                 ToolbarItemGroup(placement: .topBarTrailing) {
                     Button { hideAmounts.toggle() } label: { Image(systemName: hideAmounts ? "eye.slash" : "eye") }.accessibilityLabel(hideAmounts ? "Показать суммы" : "Скрыть суммы")
-                    Button { showingImport = true } label: { Image(systemName: "square.and.arrow.down") }
+                    Button { beginStatementImport() } label: { Image(systemName: "square.and.arrow.down") }
                         .accessibilityLabel("Импортировать операции")
                 }
             }
@@ -1013,7 +1013,7 @@ private struct AccountsOverviewView: View {
             searchText: $transactionSearchText,
             page: $transactionPage,
             hideAmounts: $hideAmounts,
-            onImport: { showingImport = true },
+            onImport: { beginStatementImport() },
             onError: { importError = $0 },
             accountName: accountName
         )
@@ -1275,6 +1275,17 @@ private struct AccountsOverviewView: View {
                 importError = error.localizedDescription
             }
         }
+    }
+
+    private func beginStatementImport() {
+        #if DEBUG || targetEnvironment(simulator)
+        if let fixtureName = ProcessInfo.processInfo.environment["MONEYWISE_TEST_IMPORT_FIXTURE"],
+           let documentsDirectory = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first {
+            importCSV(.success([documentsDirectory.appendingPathComponent(fixtureName)]))
+            return
+        }
+        #endif
+        showingImport = true
     }
 
     private func performDataChange(_ change: () throws -> Void, afterSave: () -> Void = {}) {

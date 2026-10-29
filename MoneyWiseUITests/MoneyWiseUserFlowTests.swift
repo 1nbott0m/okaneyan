@@ -64,6 +64,35 @@ final class MoneyWiseUserFlowTests: XCTestCase {
         app.navigationBars.buttons.firstMatch.tap()
         XCTAssertTrue(app.staticTexts[merchant].waitForExistence(timeout: 10), "Операция должна пережить перезапуск")
     }
+
+    @MainActor
+    func testCSVImportAndRepeatedStatementDeduplication() throws {
+        let app = XCUIApplication()
+        app.launchEnvironment["MONEYWISE_TEST_IMPORT_FIXTURE"] = "mw_import_fixture.csv"
+        app.launch()
+        let importButton = app.buttons["Импортировать операции"]
+        XCTAssertTrue(importButton.waitForExistence(timeout: 15))
+        importButton.tap()
+        XCTAssertTrue(app.navigationBars["Предпросмотр выписки"].waitForExistence(timeout: 15))
+        XCTAssertTrue(app.staticTexts["Найдено операций: 1"].exists)
+        XCTAssertTrue(app.staticTexts["CSV тест операция"].exists)
+        let confirmImport = app.navigationBars.buttons["Импортировать"]
+        XCTAssertTrue(confirmImport.waitForExistence(timeout: 8))
+        XCTAssertTrue(confirmImport.isEnabled)
+        confirmImport.tap()
+        XCTAssertTrue(app.alerts["Импорт завершён"].waitForExistence(timeout: 10))
+        XCTAssertTrue(app.alerts.staticTexts.containing(NSPredicate(format: "label CONTAINS %@", "Добавлено операций: 1")).firstMatch.exists)
+        app.alerts.buttons["Понятно"].tap()
+
+        app.terminate()
+        app.launch()
+        XCTAssertTrue(app.staticTexts["CSV тест операция"].waitForExistence(timeout: 10), "Импортированная операция должна сохраниться после перезапуска")
+        importButton.tap()
+        XCTAssertTrue(app.navigationBars["Предпросмотр выписки"].waitForExistence(timeout: 15))
+        XCTAssertTrue(app.staticTexts["Уже в истории · пропущу при импорте"].waitForExistence(timeout: 10))
+        XCTAssertTrue(app.staticTexts["Новые операции"].exists, "Повторная выписка должна быть распознана как уже импортированная")
+        app.navigationBars.buttons["Отмена"].tap()
+    }
 }
 
 
