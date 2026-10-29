@@ -98,6 +98,26 @@ final class MoneyWiseUserFlowTests: XCTestCase {
 
 extension MoneyWiseUserFlowTests {
     @MainActor
+    func testPurchaseCheckIsReachableAndFailsClosedWithoutFinancialData() throws {
+        let app = XCUIApplication()
+        app.launch()
+
+        let purchaseShortcut = app.buttons["Покупка"]
+        XCTAssertTrue(purchaseShortcut.waitForExistence(timeout: 10), "Обзор должен давать доступ к проверке покупки")
+        purchaseShortcut.tap()
+
+        XCTAssertTrue(app.navigationBars["Проверка покупки"].waitForExistence(timeout: 8))
+        let amount = app.textFields["Сумма в рублях"]
+        XCTAssertTrue(amount.waitForExistence(timeout: 5))
+        amount.tap()
+        amount.typeText("500")
+        app.buttons["Проверить"].tap()
+
+        XCTAssertTrue(app.staticTexts.containing(NSPredicate(format: "label CONTAINS %@", "Добавь баланс счёта")).firstMatch
+            .waitForExistence(timeout: 8), "Без подтверждённого баланса и плана оценка должна быть осторожной")
+    }
+
+    @MainActor
     func testGoalBudgetAndDebtCreationPersistAfterRelaunch() throws {
         let app = XCUIApplication()
         app.launch()

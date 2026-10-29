@@ -861,6 +861,9 @@ private struct RootView: View {
                     freeCashExplanation: availableNowExplanation, nodes: gravityNodes,
                     namespace: featureTransitionNamespace)
             }
+            homeShortcut("Покупка", symbol: "cart.badge.questionmark", id: "purchase-check-mark") {
+                PurchaseCheckView(snapshot: snapshot)
+            }
         }
         .padding(.vertical, 5)
         .overlay(alignment: .top) { Rectangle().fill(AppPalette.line).frame(height: 1) }
