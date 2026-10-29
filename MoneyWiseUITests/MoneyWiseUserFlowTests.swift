@@ -98,6 +98,72 @@ final class MoneyWiseUserFlowTests: XCTestCase {
 
 extension MoneyWiseUserFlowTests {
     @MainActor
+    func testGoalBudgetAndDebtCreationPersistAfterRelaunch() throws {
+        let app = XCUIApplication()
+        app.launch()
+        let planTab = app.tabBars.buttons["План"]
+        XCTAssertTrue(planTab.waitForExistence(timeout: 10))
+        planTab.tap()
+
+        let goalTitle = "Тестовая цель"
+        let addGoal = app.buttons["Добавить цель"]
+        for _ in 0..<8 where !addGoal.isHittable { app.swipeUp() }
+        XCTAssertTrue(addGoal.waitForExistence(timeout: 5))
+        addGoal.tap()
+        XCTAssertTrue(app.navigationBars["Новая цель"].waitForExistence(timeout: 5))
+        let goalName = app.textFields["Например: новый телефон"]
+        goalName.tap()
+        goalName.typeText(goalTitle)
+        let goalTarget = app.textFields["Сколько нужно, ₽"]
+        goalTarget.tap()
+        goalTarget.typeText("12000")
+        let goalMonthly = app.textFields["Откладывать в месяц, ₽"]
+        goalMonthly.tap()
+        goalMonthly.typeText("1500")
+        app.buttons["Сохранить"].tap()
+        XCTAssertTrue(app.staticTexts[goalTitle].waitForExistence(timeout: 8), "Цель должна появиться в плане")
+
+        let addBudget = app.buttons["Добавить бюджет"]
+        for _ in 0..<8 where !addBudget.isHittable { app.swipeUp() }
+        XCTAssertTrue(addBudget.waitForExistence(timeout: 5))
+        addBudget.tap()
+        XCTAssertTrue(app.navigationBars["Новый бюджет"].waitForExistence(timeout: 5))
+        let budgetAmount = app.textFields["Лимит на месяц, ₽"]
+        budgetAmount.tap()
+        budgetAmount.typeText("5000")
+        app.buttons["Сохранить"].tap()
+        XCTAssertTrue(app.staticTexts["Продукты"].waitForExistence(timeout: 8), "Бюджет должен появиться в плане")
+
+        let addDebt = app.buttons["Добавить долг"]
+        for _ in 0..<8 where !addDebt.isHittable { app.swipeUp() }
+        XCTAssertTrue(addDebt.waitForExistence(timeout: 5))
+        addDebt.tap()
+        XCTAssertTrue(app.navigationBars["Добавить долг"].waitForExistence(timeout: 5))
+        let creditor = "Тестовый долг"
+        let creditorField = app.textFields["Кому должен"]
+        creditorField.tap()
+        creditorField.typeText(creditor)
+        let debtBalance = app.textFields["Остаток долга, ₽"]
+        debtBalance.tap()
+        debtBalance.typeText("3000")
+        let payment = app.textFields["Платёж в месяц, ₽"]
+        payment.tap()
+        payment.typeText("500")
+        app.buttons["Сохранить"].tap()
+        XCTAssertTrue(app.staticTexts[creditor].waitForExistence(timeout: 8), "Долг должен появиться в плане")
+
+        app.terminate()
+        app.launch()
+        planTab.tap()
+        for _ in 0..<8 where !app.staticTexts[goalTitle].isHittable { app.swipeUp() }
+        XCTAssertTrue(app.staticTexts[goalTitle].waitForExistence(timeout: 10), "Цель должна пережить перезапуск")
+        for _ in 0..<8 where !app.staticTexts["Продукты"].isHittable { app.swipeUp() }
+        XCTAssertTrue(app.staticTexts["Продукты"].waitForExistence(timeout: 8), "Бюджет должен пережить перезапуск")
+        for _ in 0..<8 where !app.staticTexts[creditor].isHittable { app.swipeUp() }
+        XCTAssertTrue(app.staticTexts[creditor].waitForExistence(timeout: 8), "Долг должен пережить перезапуск")
+    }
+
+    @MainActor
     func testFinancialHorizonKeepsRangePickerUsableWithoutReliableHistory() throws {
         let app = XCUIApplication()
         app.launch()
