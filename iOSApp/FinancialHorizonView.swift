@@ -3,6 +3,7 @@ import SwiftData
 
 struct FinancialHorizonView: View {
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @AppStorage("moneywise.hideAmounts") private var hideAmounts = false
     let snapshot: FinanceSnapshot
     let protectedTotals: ProtectedReserveTotals
     let namespace: Namespace.ID
@@ -10,10 +11,11 @@ struct FinancialHorizonView: View {
     @State private var scenarioEnabled = false
     @State private var scenarioAmount = ""
     @State private var scenarioDate = Date.now
+    @State private var isShowingProjectionValues = false
 
     private let ranges = [1, 7, 14, 30, 90]
     private var hypothetical: HypotheticalPurchase? {
-        guard scenarioEnabled, let rubles = Money.parseRubles(scenarioAmount),
+        guard scenarioEnabled, let rubles = Money.parseRubles(scenarioAmount), rubles > 0,
               Money.canRepresent(rubles: rubles) else { return nil }
         return HypotheticalPurchase(amount: Money(rubles: rubles), date: scenarioDate, title: "Покупка")
     }
@@ -41,7 +43,9 @@ struct FinancialHorizonView: View {
                 rangePicker
                 confidenceView(projection.confidence)
                 projectionChart(projection, hasReliablePointForecast: hasReliablePointForecast)
-                if scenarioEnabled && hasReliablePointForecast { scenarioEditor }
+                if scenarioEnabled && hasReliablePointForecast {
+                    scenarioEditor(isApplied: projection.hypotheticalPurchase != nil)
+                }
                 projectionSummary
                 eventDetails
                 if !scenarioEnabled && hasReliablePointForecast {
@@ -79,7 +83,7 @@ struct FinancialHorizonView: View {
                     withAnimation(reduceMotion ? nil : .spring(response: 0.36, dampingFraction: 0.78)) { days = range }
                 } label: {
                     Text(range == 1 ? "День" : "\(range) дн.")
-                        .font(.system(size: 13, weight: days == range ? .semibold : .medium))
+                        .font(AppTypography.ui(13, weight: days == range ? .semibold : .medium))
                         .foregroundStyle(days == range ? Color.white : Color.secondary)
                         .frame(maxWidth: .infinity).padding(.vertical, 11)
                         .background {
@@ -120,7 +124,7 @@ struct FinancialHorizonView: View {
     private func projectionChart(_ projection: FinancialHorizon, hasReliablePointForecast: Bool) -> some View {
         VStack(alignment: .leading, spacing: 15) {
             HStack(alignment: .firstTextBaseline) {
-                Text(scenarioEnabled ? "Сценарий покупки" : "Прогноз остатка")
+                Text(projection.hypotheticalPurchase == nil ? "Прогноз остатка" : "Сценарий покупки")
                     .font(AppTypography.ui(19, weight: .semibold))
                 Spacer()
                 if hasReliablePointForecast, let last = projection.points.last {
@@ -146,6 +150,7 @@ struct FinancialHorizonView: View {
                     Text(projection.points.last?.date.formatted(date: .abbreviated, time: .omitted) ?? "")
                 }
                 .font(.caption2).foregroundStyle(.secondary)
+                projectionValues(projection.points)
             }
         }
         .padding(18)
@@ -153,7 +158,53 @@ struct FinancialHorizonView: View {
         .overlay(RoundedRectangle(cornerRadius: 23, style: .continuous).stroke(AppPalette.line, lineWidth: 1))
     }
 
-    private var scenarioEditor: some View {
+    private func projectionValues(_ points: [FinancialHorizon.Point]) -> some View {
+        DisclosureGroup(isExpanded: $isShowingProjectionValues) {
+            VStack(spacing: 0) {
+                ForEach(points) { point in
+                    VStack(alignment: .leading, spacing: 7) {
+                        HStack {
+                            Text(point.date.formatted(date: .abbreviated, time: .omitted))
+                                .font(AppTypography.detail(13, weight: .medium))
+                            Spacer()
+                            if point.isHypotheticalPurchaseDay {
+                                Text("Покупка в сценарии")
+                                    .font(.caption2).foregroundStyle(AppPalette.accent)
+                            }
+                        }
+                        HStack {
+                            Text("Баланс на конец дня")
+                                .font(.subheadline).foregroundStyle(.secondary)
+                            Spacer(minLength: 8)
+                            FinanceSensitiveAmount(value: point.projectedBalance.formatted)
+                                .font(AppTypography.amount(15, weight: .semibold))
+                        }
+                        HStack {
+                            Text("Свободно после резервов")
+                                .font(.subheadline).foregroundStyle(.secondary)
+                            Spacer(minLength: 8)
+                            FinanceSensitiveAmount(value: point.availableAfterReserves.formatted)
+                                .font(AppTypography.amount(15, weight: .medium))
+                        }
+                    }
+                    .padding(.vertical, 11)
+                    .accessibilityElement(children: .combine)
+                    if point.id != points.last?.id {
+                        Divider().overlay(AppPalette.line)
+                    }
+                }
+            }
+            .padding(.top, 5)
+        } label: {
+            Label("Значения прогноза по дням", systemImage: "list.bullet")
+                .font(AppTypography.ui(15, weight: .semibold))
+        }
+        .tint(AppPalette.accent)
+        .accessibilityHint("Открывает прогнозируемый баланс и свободную сумму после резервов для каждого дня.")
+        .padding(.top, 3)
+    }
+
+    private func scenarioEditor(isApplied: Bool) -> some View {
         VStack(alignment: .leading, spacing: 15) {
             HStack {
                 Label("Покупка в сценарии", systemImage: "cart")
@@ -179,8 +230,9 @@ struct FinancialHorizonView: View {
             DatePicker("Дата покупки", selection: $scenarioDate, in: Date.now..., displayedComponents: .date)
                 .datePickerStyle(.compact)
             Text(scenarioAmount.isEmpty ? "Введи сумму, чтобы увидеть её влияние на прогноз." :
-                 (hypothetical == nil ? "Дата покупки находится за пределами выбранного периода. Выбери более раннюю дату или увеличь горизонт." :
-                  "Покупка учтена только в этой временной модели."))
+                 (hypothetical == nil ? "Проверь сумму покупки: укажи число в рублях и копейках." :
+                  (!isApplied ? "Дата покупки находится за пределами выбранного периода. Выбери более раннюю дату или увеличь горизонт." :
+                   "Покупка учтена только в этой временной модели.")))
                 .font(.footnote).foregroundStyle(.secondary)
         }
         .padding(18)
@@ -253,7 +305,11 @@ struct FinancialHorizonView: View {
 
     private func chartAccessibilityLabel(for projection: FinancialHorizon) -> String {
         guard let first = projection.points.first, let last = projection.points.last else { return "Нет точек прогноза" }
-        return "Прогноз от \(first.projectedBalance.formatted) до \(last.projectedBalance.formatted) за \(days) дней. Подробности доступны ниже списком."
+        let title = projection.hypotheticalPurchase == nil ? "Прогноз остатка" : "Сценарий покупки"
+        guard !hideAmounts else {
+            return "\(title) на \(days) дней. Значения по дням можно открыть списком под графиком."
+        }
+        return "\(title) на \(days) дней: от \(first.projectedBalance.formatted) до \(last.projectedBalance.formatted). Значения по дням можно открыть списком под графиком."
     }
 }
 

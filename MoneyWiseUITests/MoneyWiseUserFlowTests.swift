@@ -65,3 +65,32 @@ final class MoneyWiseUserFlowTests: XCTestCase {
         XCTAssertTrue(app.staticTexts[merchant].waitForExistence(timeout: 10), "Операция должна пережить перезапуск")
     }
 }
+
+
+extension MoneyWiseUserFlowTests {
+    @MainActor
+    func testFinancialHorizonKeepsRangePickerUsableWithoutReliableHistory() throws {
+        let app = XCUIApplication()
+        app.launch()
+
+        let horizonLink = app.buttons["Горизонт"]
+        XCTAssertTrue(horizonLink.waitForExistence(timeout: 10), "Обзор должен показать вход в горизонт")
+        horizonLink.tap()
+
+        XCTAssertTrue(app.navigationBars["Финансовый горизонт"].waitForExistence(timeout: 10))
+        XCTAssertTrue(app.staticTexts["Точного графика пока нет"].waitForExistence(timeout: 5),
+                      "Без свежего баланса и достаточной истории нельзя показывать точечный прогноз")
+
+        let sevenDayRange = app.buttons["7 дн."]
+        XCTAssertTrue(sevenDayRange.waitForExistence(timeout: 5))
+        sevenDayRange.tap()
+        XCTAssertTrue(sevenDayRange.isSelected, "Выбранный диапазон должен объявляться доступности")
+
+        let fourteenDayRange = app.buttons["14 дн."]
+        XCTAssertTrue(fourteenDayRange.waitForExistence(timeout: 5))
+        fourteenDayRange.tap()
+        XCTAssertTrue(fourteenDayRange.isSelected)
+        XCTAssertFalse(app.buttons["Значения прогноза по дням"].exists,
+                       "Список дневных сумм не показывается без достоверных точек прогноза")
+    }
+}
