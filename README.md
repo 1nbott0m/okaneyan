@@ -50,6 +50,9 @@ plutil -lint MoneyWise.xcodeproj/project.pbxproj
 
 ## Структура
 
+- `docs/development/github-workflow.md` — разделение трёх рабочих потоков и правила веток, PR, коммитов и защиты финансовых данных.
+- `CONTRIBUTING.md` — краткая точка входа для контрибьюторов.
+- `.github/PULL_REQUEST_TEMPLATE.md` — единый шаблон передачи изменений на ревью.
 - `iOSApp/MoneyWiseApp.swift` — SwiftUI-интерфейс, SwiftData-модели и локальные сценарии приложения.
 - `Sources/MoneyCore` — денежная модель, проверка покупок, аналитика расходов, CSV-импорт, поиск регулярных трат и прогноз расходов.
 - `Tests/MoneyCoreTests` — исполняемые проверки ядра (`swift run moneywise-checks`).

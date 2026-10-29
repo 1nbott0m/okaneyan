@@ -80,6 +80,12 @@ private final class AppStartup: ObservableObject {
             let storeURL = storeDirectory.appendingPathComponent("MoneyWise.store")
             let configuration = ModelConfiguration("MoneyWise", schema: schema, url: storeURL, cloudKitDatabase: .none)
             let openedContainer = try ModelContainer(for: schema, configurations: [configuration])
+#if DEBUG || targetEnvironment(simulator)
+            if ProcessInfo.processInfo.arguments.contains("--moneywise-p0-ui-fixture")
+                || ProcessInfo.processInfo.environment["MONEYWISE_P0_UI_FIXTURE"] == "1" {
+                try Self.seedP0UITestFixture(in: openedContainer)
+            }
+#endif
             // SwiftData may create the database and SQLite sidecars during container
             // initialization. Reapply file protection and backup exclusion to those
             // newly-created files before exposing the store to the rest of the app.
@@ -93,6 +99,51 @@ private final class AppStartup: ObservableObject {
             errorMessage = "Не удалось открыть локальную базу. Разблокируй iPhone и попробуй ещё раз. Данные не были удалены. Подробность: \(error.localizedDescription)"
         }
     }
+
+#if DEBUG || targetEnvironment(simulator)
+    private static func seedP0UITestFixture(in container: ModelContainer) throws {
+        let context = ModelContext(container)
+        let fixtureAccount = try context.fetch(FetchDescriptor<StoredAccount>()).first { $0.name == "P0 тестовый счёт" }
+        if fixtureAccount != nil { return }
+        let existingRows = try context.fetchCount(FetchDescriptor<StoredTransaction>())
+            + context.fetchCount(FetchDescriptor<StoredPlanItem>())
+            + context.fetchCount(FetchDescriptor<StoredSettings>())
+            + context.fetchCount(FetchDescriptor<StoredBudget>())
+            + context.fetchCount(FetchDescriptor<StoredDebt>())
+            + context.fetchCount(FetchDescriptor<StoredAccount>())
+            + context.fetchCount(FetchDescriptor<StoredGoal>())
+            + context.fetchCount(FetchDescriptor<StoredMerchantRule>())
+            + context.fetchCount(FetchDescriptor<StoredProtectedReserve>())
+        guard existingRows == 0 else {
+            throw NSError(domain: "MoneyWiseUITestFixture", code: 1,
+                          userInfo: [NSLocalizedDescriptionKey: "P0 UI fixture requires an empty Simulator store; no existing data was changed."])
+        }
+
+        let account = StoredAccount(bank: .other, name: "P0 тестовый счёт", balance: Money(rubles: 10_000))
+        context.insert(account)
+        let settings = StoredSettings()
+        settings.balanceKopecks = Money(rubles: 10_000).kopecks
+        settings.hasManualBalance = true
+        settings.updatedAt = .now
+        settings.nextIncomeKopecks = Money(rubles: 5_000).kopecks
+        settings.nextIncomeDate = calendarDateAfterDays(7)
+        settings.nextIncomeConfirmed = true
+        context.insert(settings)
+        let calendar = Calendar.current
+        let offsets = [15, 13, 12, 10, 9, 7, 6, 4, 3, 1]
+        for (index, offset) in offsets.enumerated() {
+            let date = calendar.date(byAdding: .day, value: -offset, to: .now) ?? .now
+            let transaction = Transaction(date: date, merchant: "P0 тестовая история \(index + 1)",
+                                          amount: Money(rubles: 100), kind: .purchase, category: .other)
+            context.insert(StoredTransaction(transaction, sourceAccountID: account.id))
+        }
+        try context.save()
+    }
+
+    private static func calendarDateAfterDays(_ days: Int) -> Date {
+        Calendar.current.date(byAdding: .day, value: days, to: .now) ?? .now
+    }
+#endif
 
     private static func protectStoreFiles(in directory: URL) throws {
         let fileManager = FileManager.default
@@ -4055,6 +4106,7 @@ private struct SettingsView: View {
     @State private var incomeText = ""
     @State private var incomeDate = Calendar.current.date(byAdding: .day, value: 7, to: .now) ?? .now
     @State private var incomeConfirmed = false
+    @State private var didLoadSettings = false
     @State private var lockEnabled = false
     @State private var lockSetupUnavailable = false
     @State private var firstDeleteConfirmation = false
@@ -4121,6 +4173,10 @@ private struct SettingsView: View {
                 incomeDate = settings.nextIncomeDate ?? incomeDate
                 incomeConfirmed = settings.hasConfirmedFutureIncome
                 lockEnabled = settings.lockEnabled
+                Task { @MainActor in
+                    await Task.yield()
+                    didLoadSettings = true
+                }
             }
             .task { await refreshNotificationSettings() }
             .onReceive(NotificationCenter.default.publisher(for: PaymentReminderScheduler.stateDidChange)) { _ in
@@ -4129,8 +4185,12 @@ private struct SettingsView: View {
             .onChange(of: scenePhase) { _, phase in
                 handleScenePhaseChange(phase)
             }
-            .onChange(of: incomeText) { _, _ in incomeConfirmed = false }
-            .onChange(of: incomeDate) { _, _ in incomeConfirmed = false }
+            .onChange(of: incomeText) { _, _ in
+                if didLoadSettings { incomeConfirmed = false }
+            }
+            .onChange(of: incomeDate) { _, _ in
+                if didLoadSettings { incomeConfirmed = false }
+            }
             .onChange(of: balanceText) { _, _ in balanceConfirmed = false }
         }
     }
@@ -4170,11 +4230,13 @@ private struct SettingsView: View {
     private var protectionSection: some View {
         Section(header: Text("Защита и данные"), footer: dataProtectionFooter) {
             Toggle("Запрашивать Face ID или код", isOn: lockEnabledBinding)
-                .alert("Не удалось включить защиту", isPresented: $lockSetupUnavailable) {
-                    Button("Понятно", role: .cancel) { }
-                } message: {
-                    Text("Чтобы включить блокировку MoneyWise, сначала настрой код-пароль iPhone в системных настройках. Затем можно использовать Face ID или код.")
-                }
+            if lockSetupUnavailable {
+                Label("Защита не включена", systemImage: "exclamationmark.triangle.fill")
+                    .font(.subheadline.weight(.semibold))
+                    .foregroundStyle(.orange)
+                Text("Чтобы включить блокировку MoneyWise, сначала настрой код-пароль iPhone в системных настройках. Затем можно использовать Face ID или код.")
+                    .font(.footnote).foregroundStyle(.secondary)
+            }
             Toggle("Скрывать суммы двойным переворотом", isOn: $doubleFlipHideAmountsEnabled)
             Text("Когда приложение открыто, переверни iPhone экраном вниз два раза за 3 секунды. Повторный жест снова покажет суммы. Жест работает, когда телефон лежит горизонтально.")
                 .font(.footnote).foregroundStyle(.secondary)
@@ -4196,6 +4258,7 @@ private struct SettingsView: View {
                         return
                     }
                 }
+                lockSetupUnavailable = false
                 lockEnabled = enabled
             }
         )

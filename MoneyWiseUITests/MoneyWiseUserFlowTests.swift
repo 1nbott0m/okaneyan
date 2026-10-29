@@ -98,6 +98,115 @@ final class MoneyWiseUserFlowTests: XCTestCase {
 
 extension MoneyWiseUserFlowTests {
     @MainActor
+    func testP0BalanceObligationIncomePurchaseAndRelaunchFlow() throws {
+        let app = XCUIApplication()
+        app.launchArguments.append("--moneywise-p0-ui-fixture")
+        app.launchEnvironment["MONEYWISE_P0_UI_FIXTURE"] = "1"
+        app.launch()
+        XCTAssertTrue(app.buttons["Добавить операцию"].waitForExistence(timeout: 30))
+        let accountsLink = app.buttons.matching(NSPredicate(format: "label CONTAINS %@", "Счета и источники баланса")).firstMatch
+        XCTAssertTrue(accountsLink.waitForExistence(timeout: 8))
+        accountsLink.tap()
+        XCTAssertTrue(app.staticTexts["P0 тестовый счёт"].waitForExistence(timeout: 8))
+        app.navigationBars.buttons.firstMatch.tap()
+
+        app.tabBars.buttons["План"].tap()
+        let addPlan = app.buttons["Добавить в план"]
+        XCTAssertTrue(addPlan.waitForExistence(timeout: 8))
+        addPlan.tap()
+        XCTAssertTrue(app.navigationBars["Добавить в план"].waitForExistence(timeout: 5))
+        let obligationTitle = app.textFields["Например: дорога"]
+        obligationTitle.tap()
+        obligationTitle.typeText("P0 тестовая дорога")
+        let obligationAmount = app.textFields["Сумма, ₽"]
+        obligationAmount.tap()
+        obligationAmount.typeText("500")
+        app.buttons["Сохранить"].tap()
+        XCTAssertTrue(app.staticTexts["P0 тестовая дорога"].waitForExistence(timeout: 8))
+
+        app.buttons["Настройки приложения"].tap()
+        XCTAssertTrue(app.navigationBars["Настройки"].waitForExistence(timeout: 5))
+        let confirmedIncome = app.switches["Подтверждено для прогноза"]
+        for _ in 0..<8 where !confirmedIncome.isHittable { app.swipeUp() }
+        XCTAssertTrue(confirmedIncome.waitForExistence(timeout: 5))
+        XCTAssertEqual(confirmedIncome.value as? String, "1", "Тестовая сумма и будущая дата должны сохранять явное подтверждение")
+        XCTAssertTrue(app.staticTexts.containing(NSPredicate(
+            format: "label CONTAINS %@", "не прибавляется к балансу до зачисления"
+        )).firstMatch.exists)
+        app.buttons["Сохранить"].tap()
+
+        app.tabBars.buttons["Обзор"].tap()
+        let purchaseShortcut = app.buttons["Покупка"]
+        XCTAssertTrue(purchaseShortcut.waitForExistence(timeout: 8))
+        purchaseShortcut.tap()
+        XCTAssertTrue(app.navigationBars["Проверка покупки"].waitForExistence(timeout: 5))
+        let purchaseAmount = app.textFields["Сумма в рублях"]
+        purchaseAmount.tap()
+        purchaseAmount.typeText("1000")
+        app.buttons["Проверить"].tap()
+        XCTAssertTrue(app.staticTexts.containing(NSPredicate(
+            format: "label CONTAINS %@", "Можно. Минимум после трат:"
+        )).firstMatch.waitForExistence(timeout: 8), "Доступная покупка должна учитывать сохранённую историю и обязательство")
+
+        purchaseAmount.tap()
+        let firstAmount = purchaseAmount.value as? String ?? ""
+        for _ in 0..<firstAmount.count { purchaseAmount.typeText(XCUIKeyboardKey.delete.rawValue) }
+        purchaseAmount.typeText("9000")
+        app.buttons["Проверить"].tap()
+        XCTAssertTrue(app.staticTexts.containing(NSPredicate(
+            format: "label CONTAINS %@", "Не покупай сейчас:"
+        )).firstMatch.waitForExistence(timeout: 8), "Крупная покупка должна показать конкретный дефицит")
+
+        app.terminate()
+        app.launch()
+        XCTAssertTrue(app.buttons["Добавить операцию"].waitForExistence(timeout: 20))
+        app.tabBars.buttons["План"].tap()
+        XCTAssertTrue(app.staticTexts["P0 тестовая дорога"].waitForExistence(timeout: 8),
+                      "Обязательство должно пережить перезапуск")
+        app.buttons["Настройки приложения"].tap()
+        let persistedIncomeSwitch = app.switches["Подтверждено для прогноза"]
+        for _ in 0..<10 where !persistedIncomeSwitch.isHittable { app.swipeUp() }
+        XCTAssertTrue(persistedIncomeSwitch.waitForExistence(timeout: 8))
+        XCTAssertEqual(persistedIncomeSwitch.value as? String, "1",
+                       "Подтверждённое ожидаемое поступление должно пережить перезапуск")
+        app.terminate()
+    }
+
+    @MainActor
+    func testAppLockCoversOverviewAfterEnablementOnSimulator() throws {
+        let app = XCUIApplication()
+        app.launch()
+        XCTAssertTrue(app.buttons["Добавить операцию"].waitForExistence(timeout: 30),
+                      "Главный экран должен завершить первый запуск перед проверкой блокировки")
+        app.tabBars.buttons["План"].tap()
+        app.buttons["Настройки приложения"].tap()
+        XCTAssertTrue(app.navigationBars["Настройки"].waitForExistence(timeout: 5))
+
+        let lockSwitch = app.switches["Запрашивать Face ID или код"]
+        for _ in 0..<6 where !lockSwitch.isHittable { app.swipeUp() }
+        XCTAssertTrue(lockSwitch.waitForExistence(timeout: 5))
+        lockSwitch.coordinate(withNormalizedOffset: CGVector(dx: 0.9, dy: 0.5)).tap()
+
+        XCTAssertEqual(lockSwitch.value as? String, "1",
+                       "На этом Simulator проверка deviceOwnerAuthentication доступна")
+        let unavailableMessage = app.staticTexts.containing(
+            NSPredicate(format: "label CONTAINS %@", "сначала настрой код-пароль iPhone")
+        ).firstMatch
+        XCTAssertFalse(unavailableMessage.exists,
+                       "Не нужно показывать ошибку настройки, когда Simulator разрешает проверку")
+
+        app.buttons["Сохранить"].tap()
+        let lockScreenTitle = app.staticTexts["Данные защищены"]
+        XCTAssertTrue(lockScreenTitle.waitForExistence(timeout: 10),
+                      "После сохранения защита должна закрыть финансовый экран")
+        XCTAssertFalse(app.buttons["Добавить операцию"].exists,
+                       "Финансовый экран должен оставаться скрыт до завершения проверки")
+        XCTAssertTrue(app.buttons["Проверяем…"].exists || app.buttons["Разблокировать"].exists,
+                      "Экран блокировки должен показывать проверку или доступный повтор")
+        app.terminate()
+    }
+
+    @MainActor
     func testRecurringPaymentReminderIsScheduledAndShownInSettings() throws {
         let app = XCUIApplication()
         app.launch()

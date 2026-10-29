@@ -2,4 +2,34 @@
 .DS_Store
 DerivedData/
 *.xcuserstate
+xcuserdata/
+*.xccheckout
+.swiftpm/xcode/package.xcworkspace/xcuserdata/
+
+# Local configuration and credentials. Keep shareable templates as .env.example.
+.env
+.env.*
+!.env.example
+*.p12
+*.p8
+*.pem
+*.key
+*.mobileprovision
+
+# Local databases and SQLite sidecars can contain personal financial data.
+*.sqlite
+*.sqlite3
+*.sqlite-shm
+*.sqlite-wal
+*.db
+*.db-shm
+*.db-wal
+
+# Bank statements and spreadsheet exports must be reviewed before sharing.
+*.csv
+*.tsv
+*.ofx
+*.qif
+*.xlsx
+
 work/
