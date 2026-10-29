@@ -1185,10 +1185,14 @@ private struct AccountsOverviewView: View {
                     Text("Долг и связанный плановый платёж будут удалены. Свободная сумма увеличится, поэтому подтверждай только если запись действительно больше не нужна.")
                 }
                 .toolbar {
-                    ToolbarItem(placement: .topBarLeading) { Button { activeSheet = .settings } label: { Image(systemName: "slider.horizontal.3") } }
+                    ToolbarItem(placement: .topBarLeading) {
+                        Button { activeSheet = .settings } label: { Image(systemName: "slider.horizontal.3") }
+                            .accessibilityLabel("Настройки приложения")
+                    }
                     ToolbarItemGroup(placement: .topBarTrailing) {
                         Button { hideAmounts.toggle() } label: { Image(systemName: hideAmounts ? "eye.slash" : "eye") }.accessibilityLabel(hideAmounts ? "Показать суммы" : "Скрыть суммы")
                         NavigationLink { AddPlanItemView() } label: { Image(systemName: "plus") }
+                            .accessibilityLabel("Добавить в план")
                     }
                 }
         }

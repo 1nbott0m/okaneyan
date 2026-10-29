@@ -98,6 +98,73 @@ final class MoneyWiseUserFlowTests: XCTestCase {
 
 extension MoneyWiseUserFlowTests {
     @MainActor
+    func testRecurringPaymentReminderIsScheduledAndShownInSettings() throws {
+        let app = XCUIApplication()
+        app.launch()
+
+        app.tabBars.buttons["План"].tap()
+        let testPlan = app.staticTexts["Тестовая подписка"]
+        if !testPlan.waitForExistence(timeout: 2) {
+            let addPlan = app.buttons["Добавить в план"]
+            XCTAssertTrue(addPlan.waitForExistence(timeout: 8))
+            addPlan.tap()
+            XCTAssertTrue(app.navigationBars["Добавить в план"].waitForExistence(timeout: 5))
+
+            let title = app.textFields["Например: дорога"]
+            title.tap()
+            title.typeText("Тестовая подписка")
+            let amount = app.textFields["Сумма, ₽"]
+            amount.tap()
+            amount.typeText("400")
+            app.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.15)).tap() // dismiss the decimal keyboard
+
+            let recurrencePicker = app.buttons.matching(NSPredicate(format: "label CONTAINS %@", "Повтор")).firstMatch
+            XCTAssertTrue(recurrencePicker.waitForExistence(timeout: 5))
+            recurrencePicker.tap()
+            XCTAssertTrue(app.buttons["Каждый месяц"].waitForExistence(timeout: 5))
+            app.buttons["Каждый месяц"].tap()
+
+            let reminderPicker = app.buttons.matching(NSPredicate(format: "label CONTAINS %@", "Напомнить заранее")).firstMatch
+            XCTAssertTrue(reminderPicker.waitForExistence(timeout: 5))
+            reminderPicker.tap()
+            XCTAssertTrue(app.buttons["За два дня"].waitForExistence(timeout: 5))
+            app.buttons["За два дня"].tap()
+            app.buttons["Сохранить"].tap()
+            XCTAssertTrue(testPlan.waitForExistence(timeout: 8))
+        }
+
+        let allowNotifications = app.alerts.buttons["Разрешить"]
+        if allowNotifications.waitForExistence(timeout: 3) {
+            allowNotifications.tap()
+        }
+
+        app.buttons["Настройки приложения"].tap()
+        XCTAssertTrue(app.navigationBars["Настройки"].waitForExistence(timeout: 5))
+        let reminderSection = app.staticTexts["Напоминания"]
+        for _ in 0..<6 where !reminderSection.exists { app.swipeUp() }
+        XCTAssertTrue(reminderSection.waitForExistence(timeout: 5))
+        XCTAssertTrue(app.staticTexts["Ожидает отправки"].exists)
+        XCTAssertTrue(app.staticTexts["Ожидает отправки, 1"].exists,
+                      "В настройках должно отображаться одно ожидающее напоминание")
+
+        app.buttons["Закрыть"].tap()
+        let testPlanRow = app.buttons.containing(NSPredicate(format: "label CONTAINS %@", "Тестовая подписка")).firstMatch
+        XCTAssertTrue(testPlanRow.waitForExistence(timeout: 5))
+        testPlanRow.swipeLeft()
+        let deletePlan = app.buttons["Удалить"]
+        XCTAssertTrue(deletePlan.waitForExistence(timeout: 5))
+        deletePlan.tap()
+        XCTAssertFalse(testPlanRow.waitForExistence(timeout: 3), "Удалённый план не должен оставаться в списке")
+
+        app.buttons["Настройки приложения"].tap()
+        XCTAssertTrue(app.navigationBars["Настройки"].waitForExistence(timeout: 5))
+        let updatedReminderSection = app.staticTexts["Напоминания"]
+        for _ in 0..<6 where !updatedReminderSection.exists { app.swipeUp() }
+        XCTAssertTrue(app.staticTexts["Ожидает отправки, 0"].waitForExistence(timeout: 8),
+                      "Удаление плана должно отменить его локальное уведомление")
+    }
+
+    @MainActor
     func testPurchaseCheckIsReachableAndFailsClosedWithoutFinancialData() throws {
         let app = XCUIApplication()
         app.launch()
