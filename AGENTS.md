@@ -1,0 +1,11 @@
+# MoneyWise design implementation rules
+
+- MoneyWise is a native iOS / SwiftUI product. `preview/index.html` is a web review surface that uses labeled synthetic data; do not present it as a production web app or FinanceEngine output.
+- Preserve FinanceEngine / MoneyCore calculations and native data behavior during visual work. Do not fabricate transactions, bank syncing, card rails or a bank-level reserve lock.
+- Before a visual patch, review the current affected screen at mobile and web sizes, log the concrete issue in `design/research/visual-gap-audit.md`, and name the references and art-direction decision that support the change.
+- Follow `DESIGN.md`, `design/brand-guidelines.md`, `design/05-design-system.md` and the current direction comparison. Keep the approved dark Editorial/Okaneyan base unless the owner explicitly selects a new direction. Treat D1/D2/D3 prototype labels as provisional until owner review.
+- Motion must communicate an input, state, navigation or data relationship. Keep actions available during motion, honor web `prefers-reduced-motion` and iOS Reduce Motion, and never animate an uncommitted forecast as a completed financial operation.
+- Keep type legible in Russian, support `ЯяЁё ₽ №`, preserve tabular financial numerals, and do not bundle a font or other external asset until its license and required glyph coverage are verified and recorded in `design/asset-provenance.md`.
+- Each UI change records current and resulting evidence, what was tested, and any untested state. Use the 5 gates in the MoneyWise design-research brief: G0 source evidence, G1 direction lock, G2 rendered fidelity, G3 independent critique, G4 regression. A gate without evidence is PARTIAL or NOT TESTED.
+- For the web preview, capture 390/768/1440 CSS-pixel states where the browser harness permits; include light/dark, reduced motion, expanded/collapsed and relevant empty/error/hidden/negative cases. For native iOS, use Simulator/device screenshots and accessibility checks when Xcode/device are available; otherwise mark native QA BLOCKED.
+- Do not mark a design task DONE unless DA-01…DA-25 have evidence, P0/P1 findings are resolved, owner choice is distinguished from provisional internal judgment, and limitations are stated in `design/requirements-conformance-audit.md`.

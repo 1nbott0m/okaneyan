@@ -1,0 +1,550 @@
+{
+  "origin": "http://localhost:5175/",
+  "method": "Scale each visible text-bearing element's computed font size and line height without scaling layout containers; this is a visual stress test, not native Dynamic Type.",
+  "states": [
+    {
+      "viewport": "390x844",
+      "screen": "overview",
+      "scale": "1.5",
+      "document": {
+        "width": 390,
+        "height": 4166
+      },
+      "horizontalOverflow": false,
+      "clippedText": [
+        {
+          "text": "Обзор",
+          "selector": "page-title",
+          "horizontalClip": false,
+          "verticalClip": true,
+          "box": {
+            "width": 352,
+            "height": 46
+          }
+        },
+        {
+          "text": "7 500",
+          "selector": "balance-amount",
+          "horizontalClip": false,
+          "verticalClip": true,
+          "box": {
+            "width": 198,
+            "height": 77
+          }
+        },
+        {
+          "text": "okaneyan.",
+          "selector": "account-card-brand",
+          "horizontalClip": false,
+          "verticalClip": true,
+          "box": {
+            "width": 77,
+            "height": 25
+          }
+        },
+        {
+          "text": "↗",
+          "selector": "feature-glyph",
+          "horizontalClip": false,
+          "verticalClip": true,
+          "box": {
+            "width": 28,
+            "height": 25
+          }
+        },
+        {
+          "text": "◉",
+          "selector": "feature-glyph",
+          "horizontalClip": false,
+          "verticalClip": true,
+          "box": {
+            "width": 28,
+            "height": 25
+          }
+        },
+        {
+          "text": "≡",
+          "selector": "feature-glyph",
+          "horizontalClip": false,
+          "verticalClip": true,
+          "box": {
+            "width": 28,
+            "height": 25
+          }
+        }
+      ]
+    },
+    {
+      "viewport": "390x844",
+      "screen": "overview",
+      "scale": "2",
+      "document": {
+        "width": 390,
+        "height": 11063
+      },
+      "horizontalOverflow": false,
+      "clippedText": [
+        {
+          "text": "Обзор",
+          "selector": "page-title",
+          "horizontalClip": false,
+          "verticalClip": true,
+          "box": {
+            "width": 352,
+            "height": 91
+          }
+        },
+        {
+          "text": "7 500",
+          "selector": "balance-amount",
+          "horizontalClip": true,
+          "verticalClip": true,
+          "box": {
+            "width": 270,
+            "height": 154
+          }
+        },
+        {
+          "text": "okaneyan.",
+          "selector": "account-card-brand",
+          "horizontalClip": false,
+          "verticalClip": true,
+          "box": {
+            "width": 155,
+            "height": 50
+          }
+        },
+        {
+          "text": "↗",
+          "selector": "feature-glyph",
+          "horizontalClip": true,
+          "verticalClip": true,
+          "box": {
+            "width": 28,
+            "height": 50
+          }
+        },
+        {
+          "text": "◉",
+          "selector": "feature-glyph",
+          "horizontalClip": true,
+          "verticalClip": true,
+          "box": {
+            "width": 28,
+            "height": 50
+          }
+        },
+        {
+          "text": "≡",
+          "selector": "feature-glyph",
+          "horizontalClip": false,
+          "verticalClip": true,
+          "box": {
+            "width": 28,
+            "height": 50
+          }
+        },
+        {
+          "text": "План ↗",
+          "selector": "link-button",
+          "horizontalClip": true,
+          "verticalClip": false,
+          "box": {
+            "width": 62,
+            "height": 52
+          }
+        },
+        {
+          "text": "Общий баланс",
+          "selector": "b",
+          "horizontalClip": true,
+          "verticalClip": false,
+          "box": {
+            "width": 68,
+            "height": 100
+          }
+        },
+        {
+          "text": "Введён вручную · демо-данные",
+          "selector": "span",
+          "horizontalClip": true,
+          "verticalClip": false,
+          "box": {
+            "width": 68,
+            "height": 190
+          }
+        }
+      ]
+    },
+    {
+      "viewport": "390x844",
+      "screen": "transactions",
+      "scale": "1.5",
+      "document": {
+        "width": 390,
+        "height": 1162
+      },
+      "horizontalOverflow": false,
+      "clippedText": [
+        {
+          "text": "Операции",
+          "selector": "page-title",
+          "horizontalClip": false,
+          "verticalClip": true,
+          "box": {
+            "width": 352,
+            "height": 46
+          }
+        }
+      ]
+    },
+    {
+      "viewport": "390x844",
+      "screen": "transactions",
+      "scale": "2",
+      "document": {
+        "width": 390,
+        "height": 2727
+      },
+      "horizontalOverflow": false,
+      "clippedText": [
+        {
+          "text": "Операции",
+          "selector": "page-title",
+          "horizontalClip": false,
+          "verticalClip": true,
+          "box": {
+            "width": 352,
+            "height": 91
+          }
+        },
+        {
+          "text": "Фильтр ⌄",
+          "selector": "secondary",
+          "horizontalClip": true,
+          "verticalClip": false,
+          "box": {
+            "width": 105,
+            "height": 64
+          }
+        }
+      ]
+    },
+    {
+      "viewport": "390x844",
+      "screen": "plan",
+      "scale": "1.5",
+      "document": {
+        "width": 390,
+        "height": 1529
+      },
+      "horizontalOverflow": false,
+      "clippedText": [
+        {
+          "text": "План денег",
+          "selector": "page-title",
+          "horizontalClip": false,
+          "verticalClip": true,
+          "box": {
+            "width": 352,
+            "height": 46
+          }
+        },
+        {
+          "text": "7 500",
+          "selector": "balance-amount",
+          "horizontalClip": false,
+          "verticalClip": true,
+          "box": {
+            "width": 198,
+            "height": 77
+          }
+        }
+      ]
+    },
+    {
+      "viewport": "390x844",
+      "screen": "plan",
+      "scale": "2",
+      "document": {
+        "width": 390,
+        "height": 3862
+      },
+      "horizontalOverflow": false,
+      "clippedText": [
+        {
+          "text": "План денег",
+          "selector": "page-title",
+          "horizontalClip": false,
+          "verticalClip": true,
+          "box": {
+            "width": 352,
+            "height": 183
+          }
+        },
+        {
+          "text": "7 500",
+          "selector": "balance-amount",
+          "horizontalClip": false,
+          "verticalClip": true,
+          "box": {
+            "width": 303,
+            "height": 309
+          }
+        }
+      ]
+    },
+    {
+      "viewport": "1440x1000",
+      "screen": "overview",
+      "scale": "1.5",
+      "document": {
+        "width": 1440,
+        "height": 2820
+      },
+      "horizontalOverflow": false,
+      "clippedText": [
+        {
+          "text": "Обзор",
+          "selector": "page-title",
+          "horizontalClip": false,
+          "verticalClip": true,
+          "box": {
+            "width": 174,
+            "height": 77
+          }
+        },
+        {
+          "text": "7 500",
+          "selector": "balance-amount",
+          "horizontalClip": false,
+          "verticalClip": true,
+          "box": {
+            "width": 429,
+            "height": 171
+          }
+        },
+        {
+          "text": "okaneyan.",
+          "selector": "account-card-brand",
+          "horizontalClip": false,
+          "verticalClip": true,
+          "box": {
+            "width": 84,
+            "height": 27
+          }
+        },
+        {
+          "text": "↗",
+          "selector": "feature-glyph",
+          "horizontalClip": false,
+          "verticalClip": true,
+          "box": {
+            "width": 28,
+            "height": 25
+          }
+        },
+        {
+          "text": "◉",
+          "selector": "feature-glyph",
+          "horizontalClip": false,
+          "verticalClip": true,
+          "box": {
+            "width": 28,
+            "height": 25
+          }
+        },
+        {
+          "text": "≡",
+          "selector": "feature-glyph",
+          "horizontalClip": false,
+          "verticalClip": true,
+          "box": {
+            "width": 28,
+            "height": 25
+          }
+        }
+      ]
+    },
+    {
+      "viewport": "1440x1000",
+      "screen": "overview",
+      "scale": "2",
+      "document": {
+        "width": 1440,
+        "height": 6029
+      },
+      "horizontalOverflow": false,
+      "clippedText": [
+        {
+          "text": "Обзор",
+          "selector": "page-title",
+          "horizontalClip": false,
+          "verticalClip": true,
+          "box": {
+            "width": 349,
+            "height": 154
+          }
+        },
+        {
+          "text": "7 500",
+          "selector": "balance-amount",
+          "horizontalClip": true,
+          "verticalClip": true,
+          "box": {
+            "width": 489,
+            "height": 342
+          }
+        },
+        {
+          "text": "okaneyan.",
+          "selector": "account-card-brand",
+          "horizontalClip": false,
+          "verticalClip": true,
+          "box": {
+            "width": 169,
+            "height": 54
+          }
+        },
+        {
+          "text": "↗",
+          "selector": "feature-glyph",
+          "horizontalClip": true,
+          "verticalClip": true,
+          "box": {
+            "width": 28,
+            "height": 50
+          }
+        },
+        {
+          "text": "◉",
+          "selector": "feature-glyph",
+          "horizontalClip": true,
+          "verticalClip": true,
+          "box": {
+            "width": 28,
+            "height": 50
+          }
+        },
+        {
+          "text": "≡",
+          "selector": "feature-glyph",
+          "horizontalClip": false,
+          "verticalClip": true,
+          "box": {
+            "width": 28,
+            "height": 50
+          }
+        }
+      ]
+    },
+    {
+      "viewport": "1440x1000",
+      "screen": "transactions",
+      "scale": "1.5",
+      "document": {
+        "width": 1440,
+        "height": 1000
+      },
+      "horizontalOverflow": false,
+      "clippedText": [
+        {
+          "text": "Операции",
+          "selector": "page-title",
+          "horizontalClip": false,
+          "verticalClip": true,
+          "box": {
+            "width": 407,
+            "height": 77
+          }
+        }
+      ]
+    },
+    {
+      "viewport": "1440x1000",
+      "screen": "transactions",
+      "scale": "2",
+      "document": {
+        "width": 1440,
+        "height": 1555
+      },
+      "horizontalOverflow": false,
+      "clippedText": [
+        {
+          "text": "Операции",
+          "selector": "page-title",
+          "horizontalClip": false,
+          "verticalClip": true,
+          "box": {
+            "width": 640,
+            "height": 154
+          }
+        }
+      ]
+    },
+    {
+      "viewport": "1440x1000",
+      "screen": "plan",
+      "scale": "1.5",
+      "document": {
+        "width": 1440,
+        "height": 1028
+      },
+      "horizontalOverflow": false,
+      "clippedText": [
+        {
+          "text": "План денег",
+          "selector": "page-title",
+          "horizontalClip": false,
+          "verticalClip": true,
+          "box": {
+            "width": 369,
+            "height": 77
+          }
+        },
+        {
+          "text": "7 500",
+          "selector": "balance-amount",
+          "horizontalClip": false,
+          "verticalClip": true,
+          "box": {
+            "width": 429,
+            "height": 171
+          }
+        }
+      ]
+    },
+    {
+      "viewport": "1440x1000",
+      "screen": "plan",
+      "scale": "2",
+      "document": {
+        "width": 1440,
+        "height": 2926
+      },
+      "horizontalOverflow": false,
+      "clippedText": [
+        {
+          "text": "План денег",
+          "selector": "page-title",
+          "horizontalClip": false,
+          "verticalClip": true,
+          "box": {
+            "width": 662,
+            "height": 309
+          }
+        },
+        {
+          "text": "7 500",
+          "selector": "balance-amount",
+          "horizontalClip": false,
+          "verticalClip": true,
+          "box": {
+            "width": 597,
+            "height": 684
+          }
+        }
+      ]
+    }
+  ]
+}

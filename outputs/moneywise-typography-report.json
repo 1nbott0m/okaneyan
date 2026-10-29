@@ -1,0 +1,509 @@
+{
+  "origin": "http://localhost:5175/",
+  "states": [
+    {
+      "viewport": "390x844",
+      "theme": "dark",
+      "fontStudy": "onest",
+      "fonts": {
+        "oswald": true,
+        "onest": true,
+        "golos": true
+      },
+      "roles": {
+        "heading": {
+          "text": "Обзор",
+          "family": "Oswald, system-ui, sans-serif",
+          "weight": "600",
+          "size": "29px",
+          "variantNumeric": "normal",
+          "featureSettings": "normal"
+        },
+        "amount": {
+          "text": "7 500",
+          "family": "Onest, system-ui, sans-serif",
+          "weight": "450",
+          "size": "51.48px",
+          "variantNumeric": "tabular-nums",
+          "featureSettings": "\"tnum\""
+        },
+        "primaryAction": {
+          "text": "+ Создать резерв",
+          "family": "Onest, system-ui, sans-serif",
+          "weight": "600",
+          "size": "13px",
+          "variantNumeric": "normal",
+          "featureSettings": "normal"
+        },
+        "navigation": {
+          "text": "Обзор",
+          "family": "Onest, system-ui, sans-serif",
+          "weight": "570",
+          "size": "11px",
+          "variantNumeric": "normal",
+          "featureSettings": "normal"
+        },
+        "transactionName": {
+          "text": "Аренда квартиры",
+          "family": "Onest, system-ui, sans-serif",
+          "weight": "550",
+          "size": "13px",
+          "variantNumeric": "normal",
+          "featureSettings": "normal"
+        },
+        "transactionCategory": {
+          "text": "Обязательный платёж · 30 октября",
+          "family": "Onest, system-ui, sans-serif",
+          "weight": "400",
+          "size": "11px",
+          "variantNumeric": "normal",
+          "featureSettings": "normal"
+        }
+      },
+      "documentWidth": 390,
+      "overflow": false,
+      "fontRequestsFailed": []
+    },
+    {
+      "viewport": "390x844",
+      "theme": "dark",
+      "fontStudy": "golos",
+      "fonts": {
+        "oswald": true,
+        "onest": true,
+        "golos": true
+      },
+      "roles": {
+        "heading": {
+          "text": "Обзор",
+          "family": "Oswald, system-ui, sans-serif",
+          "weight": "600",
+          "size": "29px",
+          "variantNumeric": "normal",
+          "featureSettings": "normal"
+        },
+        "amount": {
+          "text": "7 500",
+          "family": "Onest, system-ui, sans-serif",
+          "weight": "450",
+          "size": "51.48px",
+          "variantNumeric": "tabular-nums",
+          "featureSettings": "\"tnum\""
+        },
+        "primaryAction": {
+          "text": "+ Создать резерв",
+          "family": "Onest, system-ui, sans-serif",
+          "weight": "600",
+          "size": "13px",
+          "variantNumeric": "normal",
+          "featureSettings": "normal"
+        },
+        "navigation": {
+          "text": "Обзор",
+          "family": "Onest, system-ui, sans-serif",
+          "weight": "570",
+          "size": "11px",
+          "variantNumeric": "normal",
+          "featureSettings": "normal"
+        },
+        "transactionName": {
+          "text": "Аренда квартиры",
+          "family": "\"Golos Text\", system-ui, sans-serif",
+          "weight": "550",
+          "size": "13px",
+          "variantNumeric": "normal",
+          "featureSettings": "normal"
+        },
+        "transactionCategory": {
+          "text": "Обязательный платёж · 30 октября",
+          "family": "\"Golos Text\", system-ui, sans-serif",
+          "weight": "400",
+          "size": "11px",
+          "variantNumeric": "normal",
+          "featureSettings": "normal"
+        }
+      },
+      "documentWidth": 390,
+      "overflow": false,
+      "fontRequestsFailed": []
+    },
+    {
+      "viewport": "390x844",
+      "theme": "light",
+      "fontStudy": "onest",
+      "fonts": {
+        "oswald": true,
+        "onest": true,
+        "golos": true
+      },
+      "roles": {
+        "heading": {
+          "text": "Обзор",
+          "family": "Oswald, system-ui, sans-serif",
+          "weight": "600",
+          "size": "29px",
+          "variantNumeric": "normal",
+          "featureSettings": "normal"
+        },
+        "amount": {
+          "text": "7 500",
+          "family": "Onest, system-ui, sans-serif",
+          "weight": "450",
+          "size": "51.48px",
+          "variantNumeric": "tabular-nums",
+          "featureSettings": "\"tnum\""
+        },
+        "primaryAction": {
+          "text": "+ Создать резерв",
+          "family": "Onest, system-ui, sans-serif",
+          "weight": "600",
+          "size": "13px",
+          "variantNumeric": "normal",
+          "featureSettings": "normal"
+        },
+        "navigation": {
+          "text": "Обзор",
+          "family": "Onest, system-ui, sans-serif",
+          "weight": "570",
+          "size": "11px",
+          "variantNumeric": "normal",
+          "featureSettings": "normal"
+        },
+        "transactionName": {
+          "text": "Аренда квартиры",
+          "family": "Onest, system-ui, sans-serif",
+          "weight": "550",
+          "size": "13px",
+          "variantNumeric": "normal",
+          "featureSettings": "normal"
+        },
+        "transactionCategory": {
+          "text": "Обязательный платёж · 30 октября",
+          "family": "Onest, system-ui, sans-serif",
+          "weight": "400",
+          "size": "11px",
+          "variantNumeric": "normal",
+          "featureSettings": "normal"
+        }
+      },
+      "documentWidth": 390,
+      "overflow": false,
+      "fontRequestsFailed": []
+    },
+    {
+      "viewport": "390x844",
+      "theme": "light",
+      "fontStudy": "golos",
+      "fonts": {
+        "oswald": true,
+        "onest": true,
+        "golos": true
+      },
+      "roles": {
+        "heading": {
+          "text": "Обзор",
+          "family": "Oswald, system-ui, sans-serif",
+          "weight": "600",
+          "size": "29px",
+          "variantNumeric": "normal",
+          "featureSettings": "normal"
+        },
+        "amount": {
+          "text": "7 500",
+          "family": "Onest, system-ui, sans-serif",
+          "weight": "450",
+          "size": "51.48px",
+          "variantNumeric": "tabular-nums",
+          "featureSettings": "\"tnum\""
+        },
+        "primaryAction": {
+          "text": "+ Создать резерв",
+          "family": "Onest, system-ui, sans-serif",
+          "weight": "600",
+          "size": "13px",
+          "variantNumeric": "normal",
+          "featureSettings": "normal"
+        },
+        "navigation": {
+          "text": "Обзор",
+          "family": "Onest, system-ui, sans-serif",
+          "weight": "570",
+          "size": "11px",
+          "variantNumeric": "normal",
+          "featureSettings": "normal"
+        },
+        "transactionName": {
+          "text": "Аренда квартиры",
+          "family": "\"Golos Text\", system-ui, sans-serif",
+          "weight": "550",
+          "size": "13px",
+          "variantNumeric": "normal",
+          "featureSettings": "normal"
+        },
+        "transactionCategory": {
+          "text": "Обязательный платёж · 30 октября",
+          "family": "\"Golos Text\", system-ui, sans-serif",
+          "weight": "400",
+          "size": "11px",
+          "variantNumeric": "normal",
+          "featureSettings": "normal"
+        }
+      },
+      "documentWidth": 390,
+      "overflow": false,
+      "fontRequestsFailed": []
+    },
+    {
+      "viewport": "1440x900",
+      "theme": "dark",
+      "fontStudy": "onest",
+      "fonts": {
+        "oswald": true,
+        "onest": true,
+        "golos": true
+      },
+      "roles": {
+        "heading": {
+          "text": "Обзор",
+          "family": "Oswald, system-ui, sans-serif",
+          "weight": "600",
+          "size": "49px",
+          "variantNumeric": "normal",
+          "featureSettings": "normal"
+        },
+        "amount": {
+          "text": "7 500",
+          "family": "Onest, system-ui, sans-serif",
+          "weight": "450",
+          "size": "114px",
+          "variantNumeric": "tabular-nums",
+          "featureSettings": "\"tnum\""
+        },
+        "primaryAction": {
+          "text": "+ Создать резерв",
+          "family": "Onest, system-ui, sans-serif",
+          "weight": "600",
+          "size": "13px",
+          "variantNumeric": "normal",
+          "featureSettings": "normal"
+        },
+        "navigation": {
+          "text": "Обзор",
+          "family": "Onest, system-ui, sans-serif",
+          "weight": "570",
+          "size": "11px",
+          "variantNumeric": "normal",
+          "featureSettings": "normal"
+        },
+        "transactionName": {
+          "text": "Аренда квартиры",
+          "family": "Onest, system-ui, sans-serif",
+          "weight": "550",
+          "size": "13px",
+          "variantNumeric": "normal",
+          "featureSettings": "normal"
+        },
+        "transactionCategory": {
+          "text": "Обязательный платёж · 30 октября",
+          "family": "Onest, system-ui, sans-serif",
+          "weight": "400",
+          "size": "11px",
+          "variantNumeric": "normal",
+          "featureSettings": "normal"
+        }
+      },
+      "documentWidth": 1440,
+      "overflow": false,
+      "fontRequestsFailed": []
+    },
+    {
+      "viewport": "1440x900",
+      "theme": "dark",
+      "fontStudy": "golos",
+      "fonts": {
+        "oswald": true,
+        "onest": true,
+        "golos": true
+      },
+      "roles": {
+        "heading": {
+          "text": "Обзор",
+          "family": "Oswald, system-ui, sans-serif",
+          "weight": "600",
+          "size": "49px",
+          "variantNumeric": "normal",
+          "featureSettings": "normal"
+        },
+        "amount": {
+          "text": "7 500",
+          "family": "Onest, system-ui, sans-serif",
+          "weight": "450",
+          "size": "114px",
+          "variantNumeric": "tabular-nums",
+          "featureSettings": "\"tnum\""
+        },
+        "primaryAction": {
+          "text": "+ Создать резерв",
+          "family": "Onest, system-ui, sans-serif",
+          "weight": "600",
+          "size": "13px",
+          "variantNumeric": "normal",
+          "featureSettings": "normal"
+        },
+        "navigation": {
+          "text": "Обзор",
+          "family": "Onest, system-ui, sans-serif",
+          "weight": "570",
+          "size": "11px",
+          "variantNumeric": "normal",
+          "featureSettings": "normal"
+        },
+        "transactionName": {
+          "text": "Аренда квартиры",
+          "family": "\"Golos Text\", system-ui, sans-serif",
+          "weight": "550",
+          "size": "13px",
+          "variantNumeric": "normal",
+          "featureSettings": "normal"
+        },
+        "transactionCategory": {
+          "text": "Обязательный платёж · 30 октября",
+          "family": "\"Golos Text\", system-ui, sans-serif",
+          "weight": "400",
+          "size": "11px",
+          "variantNumeric": "normal",
+          "featureSettings": "normal"
+        }
+      },
+      "documentWidth": 1440,
+      "overflow": false,
+      "fontRequestsFailed": []
+    },
+    {
+      "viewport": "1440x900",
+      "theme": "light",
+      "fontStudy": "onest",
+      "fonts": {
+        "oswald": true,
+        "onest": true,
+        "golos": true
+      },
+      "roles": {
+        "heading": {
+          "text": "Обзор",
+          "family": "Oswald, system-ui, sans-serif",
+          "weight": "600",
+          "size": "49px",
+          "variantNumeric": "normal",
+          "featureSettings": "normal"
+        },
+        "amount": {
+          "text": "7 500",
+          "family": "Onest, system-ui, sans-serif",
+          "weight": "450",
+          "size": "114px",
+          "variantNumeric": "tabular-nums",
+          "featureSettings": "\"tnum\""
+        },
+        "primaryAction": {
+          "text": "+ Создать резерв",
+          "family": "Onest, system-ui, sans-serif",
+          "weight": "600",
+          "size": "13px",
+          "variantNumeric": "normal",
+          "featureSettings": "normal"
+        },
+        "navigation": {
+          "text": "Обзор",
+          "family": "Onest, system-ui, sans-serif",
+          "weight": "570",
+          "size": "11px",
+          "variantNumeric": "normal",
+          "featureSettings": "normal"
+        },
+        "transactionName": {
+          "text": "Аренда квартиры",
+          "family": "Onest, system-ui, sans-serif",
+          "weight": "550",
+          "size": "13px",
+          "variantNumeric": "normal",
+          "featureSettings": "normal"
+        },
+        "transactionCategory": {
+          "text": "Обязательный платёж · 30 октября",
+          "family": "Onest, system-ui, sans-serif",
+          "weight": "400",
+          "size": "11px",
+          "variantNumeric": "normal",
+          "featureSettings": "normal"
+        }
+      },
+      "documentWidth": 1440,
+      "overflow": false,
+      "fontRequestsFailed": []
+    },
+    {
+      "viewport": "1440x900",
+      "theme": "light",
+      "fontStudy": "golos",
+      "fonts": {
+        "oswald": true,
+        "onest": true,
+        "golos": true
+      },
+      "roles": {
+        "heading": {
+          "text": "Обзор",
+          "family": "Oswald, system-ui, sans-serif",
+          "weight": "600",
+          "size": "49px",
+          "variantNumeric": "normal",
+          "featureSettings": "normal"
+        },
+        "amount": {
+          "text": "7 500",
+          "family": "Onest, system-ui, sans-serif",
+          "weight": "450",
+          "size": "114px",
+          "variantNumeric": "tabular-nums",
+          "featureSettings": "\"tnum\""
+        },
+        "primaryAction": {
+          "text": "+ Создать резерв",
+          "family": "Onest, system-ui, sans-serif",
+          "weight": "600",
+          "size": "13px",
+          "variantNumeric": "normal",
+          "featureSettings": "normal"
+        },
+        "navigation": {
+          "text": "Обзор",
+          "family": "Onest, system-ui, sans-serif",
+          "weight": "570",
+          "size": "11px",
+          "variantNumeric": "normal",
+          "featureSettings": "normal"
+        },
+        "transactionName": {
+          "text": "Аренда квартиры",
+          "family": "\"Golos Text\", system-ui, sans-serif",
+          "weight": "550",
+          "size": "13px",
+          "variantNumeric": "normal",
+          "featureSettings": "normal"
+        },
+        "transactionCategory": {
+          "text": "Обязательный платёж · 30 октября",
+          "family": "\"Golos Text\", system-ui, sans-serif",
+          "weight": "400",
+          "size": "11px",
+          "variantNumeric": "normal",
+          "featureSettings": "normal"
+        }
+      },
+      "documentWidth": 1440,
+      "overflow": false,
+      "fontRequestsFailed": []
+    }
+  ]
+}

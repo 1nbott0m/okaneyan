@@ -1,0 +1,290 @@
+{
+  "date": "2026-10-29T07:15:08.663Z",
+  "base": "http://localhost:5175/",
+  "viewports": [
+    {
+      "width": 390,
+      "height": 844,
+      "documentWidth": 390,
+      "documentHeight": 1547,
+      "theme": "dark",
+      "mobileNavVisible": true,
+      "sidebarVisible": false,
+      "noHorizontalOverflow": true
+    },
+    {
+      "width": 768,
+      "height": 1024,
+      "documentWidth": 768,
+      "documentHeight": 1503,
+      "theme": "dark",
+      "mobileNavVisible": true,
+      "sidebarVisible": false,
+      "noHorizontalOverflow": true
+    },
+    {
+      "width": 1440,
+      "height": 900,
+      "documentWidth": 1440,
+      "documentHeight": 1362,
+      "theme": "dark",
+      "mobileNavVisible": true,
+      "sidebarVisible": false,
+      "noHorizontalOverflow": true
+    }
+  ],
+  "directions": [
+    {
+      "width": 390,
+      "direction": "d1",
+      "active": "d1",
+      "amount": "7 500",
+      "horizon": "Сейчас\nчетверг\nАренда\n30 окт · 32 000 ₽\nПоступление\n1 ноя · ожидается",
+      "overflow": false
+    },
+    {
+      "width": 390,
+      "direction": "d2",
+      "active": "d2",
+      "amount": "7 500",
+      "horizon": "Сейчас\nчетверг\nАренда\n30 окт · 32 000 ₽\nПоступление\n1 ноя · ожидается",
+      "overflow": false
+    },
+    {
+      "width": 390,
+      "direction": "d3",
+      "active": "d3",
+      "amount": "7 500",
+      "horizon": "Сейчас\nчетверг\nАренда\n30 окт · 32 000 ₽\nПоступление\n1 ноя · ожидается",
+      "overflow": false
+    },
+    {
+      "width": 768,
+      "direction": "d1",
+      "active": "d1",
+      "amount": "7 500",
+      "horizon": "Сейчас\nчетверг\nАренда\n30 окт · 32 000 ₽\nПоступление\n1 ноя · ожидается",
+      "overflow": false
+    },
+    {
+      "width": 768,
+      "direction": "d2",
+      "active": "d2",
+      "amount": "7 500",
+      "horizon": "Сейчас\nчетверг\nАренда\n30 окт · 32 000 ₽\nПоступление\n1 ноя · ожидается",
+      "overflow": false
+    },
+    {
+      "width": 768,
+      "direction": "d3",
+      "active": "d3",
+      "amount": "7 500",
+      "horizon": "Сейчас\nчетверг\nАренда\n30 окт · 32 000 ₽\nПоступление\n1 ноя · ожидается",
+      "overflow": false
+    },
+    {
+      "width": 1440,
+      "direction": "d1",
+      "active": "d1",
+      "amount": "7 500",
+      "horizon": "Сейчас\nчетверг\nАренда\n30 окт · 32 000 ₽\nПоступление\n1 ноя · ожидается",
+      "overflow": false
+    },
+    {
+      "width": 1440,
+      "direction": "d2",
+      "active": "d2",
+      "amount": "7 500",
+      "horizon": "Сейчас\nчетверг\nАренда\n30 окт · 32 000 ₽\nПоступление\n1 ноя · ожидается",
+      "overflow": false
+    },
+    {
+      "width": 1440,
+      "direction": "d3",
+      "active": "d3",
+      "amount": "7 500",
+      "horizon": "Сейчас\nчетверг\nАренда\n30 окт · 32 000 ₽\nПоступление\n1 ноя · ожидается",
+      "overflow": false
+    }
+  ],
+  "flows": {
+    "defaultOverviewDensity": {
+      "390": {
+        "cardHeight": 290,
+        "amount": "7 500",
+        "hasNextIncome": true,
+        "hasHorizon": true,
+        "featureY": 542,
+        "duplicateEditorialDisplay": "none",
+        "duplicatePlanDisplay": "none",
+        "financialContextRows": 2,
+        "shortcutCount": 3,
+        "accountTitle": "Баланс счёта",
+        "accountSurface": "rgba(0, 0, 0, 0)",
+        "accountRadius": "0px",
+        "minimumReserveLabel": "Минимальный остаток",
+        "protectedTotalLabel": "Всего защищено\n215 000 ₽"
+      },
+      "768": {
+        "cardHeight": 390,
+        "amount": "7 500",
+        "hasNextIncome": true,
+        "hasHorizon": true,
+        "featureY": 785,
+        "duplicateEditorialDisplay": "none",
+        "duplicatePlanDisplay": "none",
+        "financialContextRows": 2,
+        "shortcutCount": 3,
+        "accountTitle": "Баланс счёта",
+        "accountSurface": "rgba(0, 0, 0, 0)",
+        "accountRadius": "0px",
+        "minimumReserveLabel": "Минимальный остаток",
+        "protectedTotalLabel": "Всего защищено\n215 000 ₽"
+      },
+      "1440": {
+        "cardHeight": 435,
+        "amount": "7 500",
+        "hasNextIncome": true,
+        "hasHorizon": true,
+        "featureY": 644,
+        "duplicateEditorialDisplay": "none",
+        "duplicatePlanDisplay": "none",
+        "financialContextRows": 2,
+        "shortcutCount": 3,
+        "accountTitle": "Баланс счёта",
+        "accountSurface": "rgba(0, 0, 0, 0)",
+        "accountRadius": "0px",
+        "minimumReserveLabel": "Минимальный остаток",
+        "protectedTotalLabel": "Всего защищено\n215 000 ₽"
+      }
+    },
+    "accountPreviewDisclosure": {
+      "message": "Счета и источники баланса настраиваются в iOS-приложении",
+      "staysOnOverview": true,
+      "avoidsHiddenAnchor": true
+    },
+    "breakdownExpanded": "true",
+    "breakdownRows": 7,
+    "breakdownCollapsed": "false",
+    "amountsHidden": {
+      "enabled": true,
+      "buttonLabel": "Показать суммы",
+      "balance": "••••••",
+      "visibleAmountNodeCount": 63,
+      "unmaskedVisibleNodeCount": 0
+    },
+    "reducedMotion": {
+      "preference": true,
+      "animationDuration": "1e-05s"
+    },
+    "expandWorksWithReducedMotion": "true",
+    "themeAfterToggle": "light",
+    "themeAfterReload": "light",
+    "themeRestored": "dark",
+    "transactionsNavigation": {
+      "390": true,
+      "768": true,
+      "1440": true
+    },
+    "horizonRanges": {
+      "390": {
+        "7": {
+          "endLabel": "Через 7 дн.",
+          "endValue": "-16 500 ₽",
+          "lineLength": 101
+        },
+        "30": {
+          "endLabel": "Через 30 дн.",
+          "endValue": "-154 500 ₽",
+          "lineLength": 384
+        },
+        "90": {
+          "endLabel": "Через 90 дн.",
+          "endValue": "-514 500 ₽",
+          "lineLength": 1125
+        }
+      },
+      "768": {
+        "7": {
+          "endLabel": "Через 7 дн.",
+          "endValue": "-16 500 ₽",
+          "lineLength": 101
+        },
+        "30": {
+          "endLabel": "Через 30 дн.",
+          "endValue": "-154 500 ₽",
+          "lineLength": 384
+        },
+        "90": {
+          "endLabel": "Через 90 дн.",
+          "endValue": "-514 500 ₽",
+          "lineLength": 1125
+        }
+      },
+      "1440": {
+        "7": {
+          "endLabel": "Через 7 дн.",
+          "endValue": "-16 500 ₽",
+          "lineLength": 101
+        },
+        "30": {
+          "endLabel": "Через 30 дн.",
+          "endValue": "-154 500 ₽",
+          "lineLength": 384
+        },
+        "90": {
+          "endLabel": "Через 90 дн.",
+          "endValue": "-514 500 ₽",
+          "lineLength": 1125
+        }
+      }
+    },
+    "purchaseScenarioChangesProjection": true,
+    "scenarioTransactionCountUnchanged": true,
+    "horizonOverflow": {
+      "390": false,
+      "768": false,
+      "1440": false
+    },
+    "gravityModes": {
+      "390": {
+        "compositionRowCount": 6,
+        "compositionDetailVisible": true,
+        "listVisible": true,
+        "listDetailVisible": true
+      },
+      "768": {
+        "compositionRowCount": 6,
+        "compositionDetailVisible": true,
+        "listVisible": true,
+        "listDetailVisible": true
+      },
+      "1440": {
+        "compositionRowCount": 6,
+        "compositionDetailVisible": true,
+        "listVisible": true,
+        "listDetailVisible": true
+      }
+    },
+    "gravityOverflow": {
+      "390": false,
+      "768": false,
+      "1440": false
+    },
+    "reserveUndoVisible": true,
+    "reserveAmounts": {
+      "before": "20 000 ₽",
+      "afterRelease": "15 000 ₽",
+      "afterUndo": "20 000 ₽"
+    },
+    "reserveAmountRestored": true,
+    "addModal": {
+      "visible": true,
+      "focusedField": "amountInput"
+    }
+  },
+  "consoleErrors": [],
+  "allViewportsNoOverflow": true,
+  "allDirectionsPreserveBalance": true,
+  "functionalChecksPassed": true
+}

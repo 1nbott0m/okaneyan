@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-labelledby="title desc"><title id="title">okaneyan. Orbit O iOS icon — monochrome</title><desc id="desc">Full-bleed square app icon with a central O, open outer orbit, and signature point.</desc><defs></defs><rect width="512" height="512" fill="#FFFFFF"/><g fill="none" stroke="#111111" stroke-linecap="round" stroke-linejoin="round">
+<path d="M103 250 C103 340 171 409 256 409 C344 409 410 341 410 254 C410 211 394 174 368 145" stroke-width="25"/>
+<path d="M153 111 C183 96 216 88 249 89" stroke-width="25"/>
+<circle cx="256" cy="256" r="73" stroke-width="29"/>
+</g><circle cx="337" cy="119" r="31" fill="#111111"/></svg>

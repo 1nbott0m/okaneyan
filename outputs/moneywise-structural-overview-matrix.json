@@ -1,0 +1,183 @@
+{
+  "date": "2026-10-29T06:40:25.814Z",
+  "viewportWidths": [
+    {
+      "width": 390,
+      "noHorizontalOverflow": true
+    },
+    {
+      "width": 768,
+      "noHorizontalOverflow": true
+    },
+    {
+      "width": 1440,
+      "noHorizontalOverflow": true
+    }
+  ],
+  "concepts": 9,
+  "flows": {
+    "defaultOverviewDensity": {
+      "390": {
+        "cardHeight": 290,
+        "amount": "7 500",
+        "hasNextIncome": true,
+        "hasHorizon": true,
+        "featureY": 542,
+        "duplicateEditorialDisplay": "none",
+        "duplicatePlanDisplay": "none",
+        "financialContextRows": 2,
+        "shortcutCount": 3
+      },
+      "768": {
+        "cardHeight": 390,
+        "amount": "7 500",
+        "hasNextIncome": true,
+        "hasHorizon": true,
+        "featureY": 795,
+        "duplicateEditorialDisplay": "none",
+        "duplicatePlanDisplay": "none",
+        "financialContextRows": 2,
+        "shortcutCount": 3
+      },
+      "1440": {
+        "cardHeight": 435,
+        "amount": "7 500",
+        "hasNextIncome": true,
+        "hasHorizon": true,
+        "featureY": 644,
+        "duplicateEditorialDisplay": "none",
+        "duplicatePlanDisplay": "none",
+        "financialContextRows": 2,
+        "shortcutCount": 3
+      }
+    },
+    "accountPreviewDisclosure": {
+      "message": "Счета и источники баланса настраиваются в iOS-приложении",
+      "staysOnOverview": true,
+      "avoidsHiddenAnchor": true
+    },
+    "breakdownExpanded": "true",
+    "breakdownRows": 7,
+    "breakdownCollapsed": "false",
+    "amountsHidden": {
+      "enabled": true,
+      "buttonLabel": "Показать суммы",
+      "balance": "••••••",
+      "visibleAmountNodeCount": 63,
+      "unmaskedVisibleNodeCount": 0
+    },
+    "reducedMotion": {
+      "preference": true,
+      "animationDuration": "1e-05s"
+    },
+    "expandWorksWithReducedMotion": "true",
+    "themeAfterToggle": "light",
+    "themeAfterReload": "light",
+    "themeRestored": "dark",
+    "transactionsNavigation": {
+      "390": true,
+      "768": true,
+      "1440": true
+    },
+    "horizonRanges": {
+      "390": {
+        "7": {
+          "endLabel": "Через 7 дн.",
+          "endValue": "-16 500 ₽",
+          "lineLength": 101
+        },
+        "30": {
+          "endLabel": "Через 30 дн.",
+          "endValue": "-154 500 ₽",
+          "lineLength": 384
+        },
+        "90": {
+          "endLabel": "Через 90 дн.",
+          "endValue": "-514 500 ₽",
+          "lineLength": 1125
+        }
+      },
+      "768": {
+        "7": {
+          "endLabel": "Через 7 дн.",
+          "endValue": "-16 500 ₽",
+          "lineLength": 101
+        },
+        "30": {
+          "endLabel": "Через 30 дн.",
+          "endValue": "-154 500 ₽",
+          "lineLength": 384
+        },
+        "90": {
+          "endLabel": "Через 90 дн.",
+          "endValue": "-514 500 ₽",
+          "lineLength": 1125
+        }
+      },
+      "1440": {
+        "7": {
+          "endLabel": "Через 7 дн.",
+          "endValue": "-16 500 ₽",
+          "lineLength": 101
+        },
+        "30": {
+          "endLabel": "Через 30 дн.",
+          "endValue": "-154 500 ₽",
+          "lineLength": 384
+        },
+        "90": {
+          "endLabel": "Через 90 дн.",
+          "endValue": "-514 500 ₽",
+          "lineLength": 1125
+        }
+      }
+    },
+    "purchaseScenarioChangesProjection": true,
+    "scenarioTransactionCountUnchanged": true,
+    "horizonOverflow": {
+      "390": false,
+      "768": false,
+      "1440": false
+    },
+    "gravityModes": {
+      "390": {
+        "compositionRowCount": 6,
+        "compositionDetailVisible": true,
+        "listVisible": true,
+        "listDetailVisible": true
+      },
+      "768": {
+        "compositionRowCount": 6,
+        "compositionDetailVisible": true,
+        "listVisible": true,
+        "listDetailVisible": true
+      },
+      "1440": {
+        "compositionRowCount": 6,
+        "compositionDetailVisible": true,
+        "listVisible": true,
+        "listDetailVisible": true
+      }
+    },
+    "gravityOverflow": {
+      "390": false,
+      "768": false,
+      "1440": false
+    },
+    "reserveUndoVisible": true,
+    "reserveAmounts": {
+      "before": "20 000 ₽",
+      "afterRelease": "15 000 ₽",
+      "afterUndo": "20 000 ₽"
+    },
+    "reserveAmountRestored": true,
+    "addModal": {
+      "visible": true,
+      "focusedField": "amountInput"
+    }
+  },
+  "consoleErrors": [],
+  "allViewportsNoOverflow": true,
+  "allDirectionsPreserveBalance": true,
+  "functionalChecksPassed": true
+}
