@@ -93,4 +93,52 @@ extension MoneyWiseUserFlowTests {
         XCTAssertFalse(app.buttons["Значения прогноза по дням"].exists,
                        "Список дневных сумм не показывается без достоверных точек прогноза")
     }
+
+    @MainActor
+    func testDeleteAllDataRequiresTwoConfirmationsAndRemovesFinancialRecords() throws {
+        let app = XCUIApplication()
+        app.launch()
+
+        let accountsLink = app.buttons.matching(NSPredicate(
+            format: "label CONTAINS %@", "Счета и источники баланса"
+        )).firstMatch
+        XCTAssertTrue(accountsLink.waitForExistence(timeout: 15))
+        accountsLink.tap()
+        let addAccount = app.buttons["Добавить счёт"]
+        XCTAssertTrue(addAccount.waitForExistence(timeout: 5))
+        addAccount.tap()
+        let suffix = String(UUID().uuidString.prefix(8))
+        let accountName = "Удаляемый счёт \(suffix)"
+        let name = app.textFields["Название счёта"]
+        XCTAssertTrue(name.waitForExistence(timeout: 5))
+        name.tap()
+        name.typeText(accountName)
+        let balance = app.textFields["Баланс, ₽"]
+        balance.tap()
+        balance.typeText("2500")
+        app.buttons["Сохранить"].tap()
+        XCTAssertTrue(app.staticTexts[accountName].waitForExistence(timeout: 5))
+        app.navigationBars.buttons.firstMatch.tap()
+
+        let configureButton = app.buttons["Настроить расчёт"]
+        XCTAssertTrue(configureButton.waitForExistence(timeout: 5))
+        configureButton.tap()
+
+        let deleteButton = app.buttons["Удалить все данные на этом iPhone"]
+        for _ in 0..<5 where !deleteButton.exists { app.swipeUp() }
+        XCTAssertTrue(deleteButton.waitForExistence(timeout: 8))
+        deleteButton.tap()
+        XCTAssertTrue(app.alerts["Подготовить удаление?"].waitForExistence(timeout: 5))
+        app.alerts.buttons["Продолжить"].tap()
+        XCTAssertTrue(app.alerts["Удалить данные?"].waitForExistence(timeout: 5))
+        app.alerts.buttons["Отмена"].tap()
+        XCTAssertTrue(deleteButton.waitForExistence(timeout: 5), "Отмена второго шага должна оставить экран настроек и данные")
+
+        deleteButton.tap()
+        app.alerts.buttons["Продолжить"].tap()
+        XCTAssertTrue(app.alerts["Удалить данные?"].waitForExistence(timeout: 5))
+        app.alerts.buttons["Удалить всё"].tap()
+        XCTAssertTrue(app.buttons["Горизонт"].waitForExistence(timeout: 10), "После очистки приложение должно вернуться на обзор")
+        XCTAssertFalse(app.staticTexts[accountName].exists)
+    }
 }
