@@ -1340,7 +1340,7 @@ private struct AccountsOverviewView: View {
                 amount: item.scheduled.amount, daysBefore: item.reminderDays, recurrence: recurrence,
                 occurrencesRemaining: item.occurrencesRemaining,
                 finalOccurrenceAmount: item.scheduled.finalOccurrenceAmount,
-                settlements: settlements, id: item.id)
+                settlements: settlements, kind: item.scheduled.kind, id: item.id)
         }
     }
 
@@ -4943,7 +4943,7 @@ private enum PaymentReminderScheduler {
 
     static func schedule(title: String, dueDate: Date, amount: Money, daysBefore: Int, recurrence: ScheduledItem.Recurrence,
                          occurrencesRemaining: Int? = nil, finalOccurrenceAmount: Money? = nil,
-                         settlements: [ScheduledSettlement] = [], id: UUID) {
+                         settlements: [ScheduledSettlement] = [], kind: ScheduledItem.Kind = .obligation, id: UUID) {
         let generation = UUID()
         scheduleGenerations[id] = generation
         failedScheduleIDs.remove(id)
@@ -4964,7 +4964,7 @@ private enum PaymentReminderScheduler {
                 let calendar = Calendar.current
                 guard let minimumDueDate = calendar.date(byAdding: .day, value: daysBefore, to: now) else { return }
                 let item = ScheduledItem(id: id, title: title, amount: amount, dueDate: dueDate,
-                    recurrence: recurrence, occurrencesRemaining: occurrencesRemaining,
+                    kind: kind, recurrence: recurrence, occurrencesRemaining: occurrencesRemaining,
                     finalOccurrenceAmount: finalOccurrenceAmount)
                 guard var nextDue = ScheduledSettlementPolicy.firstUnsettledOccurrence(onOrAfter: minimumDueDate,
                         of: item, settlements: settlements, calendar: calendar) else { return }
@@ -4979,8 +4979,13 @@ private enum PaymentReminderScheduler {
                 }
                 guard let reminderDate, reminderDate > now else { return }
                 let content = UNMutableNotificationContent()
-                content.title = "Скоро запланированный платёж"
-                content.body = "Открой приложение и проверь план расходов."
+                if kind == .debtCollection {
+                    content.title = "Скоро ожидаемый возврат"
+                    content.body = "Открой приложение и проверь план поступления."
+                } else {
+                    content.title = "Скоро запланированный платёж"
+                    content.body = "Открой приложение и проверь план расходов."
+                }
                 content.sound = .default
                 let components = Calendar.current.dateComponents([.year, .month, .day, .hour, .minute], from: reminderDate)
                 let trigger = UNCalendarNotificationTrigger(dateMatching: components, repeats: false)
