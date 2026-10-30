@@ -276,7 +276,10 @@ struct FinancialHorizonView: View {
                     .font(.subheadline).foregroundStyle(.secondary).padding(.vertical, 8)
             }
             ForEach(shown) { item in
-                eventRow(item.title, date: item.dueDate, amount: item.amount, icon: "arrow.up.right", tint: AppPalette.accent)
+                let isDebtReturn = item.kind == .debtCollection
+                eventRow(item.title, date: item.dueDate, amount: item.amount,
+                         icon: isDebtReturn ? "arrow.down.left" : "arrow.up.right",
+                         tint: isDebtReturn ? .green : AppPalette.accent)
             }
         }
         .padding(18)

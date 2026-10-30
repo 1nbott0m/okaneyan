@@ -328,10 +328,14 @@ private func normalizedMerchantKey(_ merchant: String) -> String {
     var paymentKopecks: Int64
     var firstPaymentDate: Date
     var planItemID: UUID
-    init(creditor: String, balance: Money, payment: Money, firstPaymentDate: Date, planItemID: UUID) {
+    var directionRaw: String?
+    init(creditor: String, balance: Money, payment: Money, firstPaymentDate: Date,
+         planItemID: UUID, direction: DebtDirection = .owedByMe) {
         id = UUID(); self.creditor = creditor; balanceKopecks = balance.kopecks
         paymentKopecks = payment.kopecks; self.firstPaymentDate = firstPaymentDate; self.planItemID = planItemID
+        directionRaw = direction.rawValue
     }
+    var direction: DebtDirection { directionRaw.flatMap(DebtDirection.init(rawValue:)) ?? .owedByMe }
     /// Last balance explicitly entered or confirmed by the user. It is never reduced by time alone.
     var currentBalance: Money { Money(kopecks: balanceKopecks) }
 }
@@ -429,7 +433,10 @@ private func validatedScheduledSettlements(transactions: [StoredTransaction], pl
         guard let planID = transaction.scheduledPlanItemID,
               let occurrenceDate = transaction.scheduledOccurrenceDate,
               let plan = plansByID[planID]?.scheduled,
-              transaction.status == .posted, transaction.kind.isOutflow,
+              transaction.status == .posted,
+              (plan.kind == .debtCollection
+                ? (transaction.kind == .income || transaction.kind == .incomingTransfer)
+                : transaction.kind.isOutflow),
               !transaction.internalTransfer else { continue }
         let balanceUpdatedAt = settlementBalanceTimestamp(sourceAccountID: transaction.sourceAccountID,
             accounts: accounts, manualBalanceUpdatedAt: settings?.updatedAt)
@@ -610,6 +617,11 @@ private struct RootView: View {
         let linkedPlans = planItems.filter { $0.id == debt.planItemID }
         guard linkedPlans.count == 1, let plan = linkedPlans.first else { return false }
         let linkedDebtCount = debts.filter { $0.planItemID == debt.planItemID }.count
+        if debt.direction == .owedToMe {
+            return DebtCollectionSchedule.matchesPlan(balance: Money(kopecks: debt.balanceKopecks),
+                payment: Money(kopecks: debt.paymentKopecks), firstPaymentDate: debt.firstPaymentDate,
+                plan: plan.scheduled, linkedDebtCount: linkedDebtCount)
+        }
         return DebtRepaymentSchedule.matchesPlan(balance: Money(kopecks: debt.balanceKopecks),
             payment: Money(kopecks: debt.paymentKopecks), firstPaymentDate: debt.firstPaymentDate,
             plan: plan.scheduled, linkedDebtCount: linkedDebtCount)
@@ -797,12 +809,17 @@ private struct RootView: View {
         }
         let obligations = FinanceEngine().upcomingOccurrences(snapshot, from: .now,
             through: nextMonth.addingTimeInterval(-0.001))
+            .filter { occurrence in
+                snapshot.scheduledItems.first(where: { $0.id == occurrence.planID })?.kind != .debtCollection
+            }
         let obligationsTotal = Money.sum(obligations.map(\.amount))
         if obligationsTotal > .zero {
             nodes.append(.init(id: "obligations", title: "Платежи · 30 дней", amount: obligationsTotal, kind: .obligation))
         }
         let confirmedIncome = snapshot.incomes.filter { $0.isConfirmed && $0.date >= .now && $0.date < nextMonth }
-        let incomeTotal = Money.sum(confirmedIncome.map(\.amount))
+        let plannedDebtReturns = FinanceEngine().upcomingOccurrences(snapshot, from: .now,
+            through: nextMonth.addingTimeInterval(-0.001)).filter { $0.kind == .debtCollection }
+        let incomeTotal = Money.sum(confirmedIncome.map(\.amount) + plannedDebtReturns.map(\.amount))
         if incomeTotal > .zero {
             nodes.append(.init(id: "income", title: "Поступления · 30 дней", amount: incomeTotal, kind: .income))
         }
@@ -1122,6 +1139,7 @@ private struct AccountsOverviewView: View {
             case .obligation: "Обязательство"
             case .goalContribution: "Взнос в цель"
             case .debtRepayment: "Платёж по долгу"
+            case .debtCollection: "Возврат долга тебе"
             case .subscription: "Подписка"
             }
         } ?? "Тип не распознан"
@@ -1135,7 +1153,8 @@ private struct AccountsOverviewView: View {
                 : "Разово · \(item.dueDate.formatted(date: .abbreviated, time: .omitted))"
         } else if recurrence != nil,
                   let nextDate = ScheduledRecurrence.firstOccurrence(onOrAfter: .now, of: item.scheduled) {
-            dateDetails = "Следующий платёж · \(nextDate.formatted(date: .abbreviated, time: .omitted))"
+            let label = item.kindRaw == ScheduledItem.Kind.debtCollection.rawValue ? "Следующий ожидаемый возврат" : "Следующий платёж"
+            dateDetails = "\(label) · \(nextDate.formatted(date: .abbreviated, time: .omitted))"
         } else if recurrence == nil {
             dateDetails = "Периодичность не распознана"
         } else {
@@ -1259,6 +1278,7 @@ private struct AccountsOverviewView: View {
                         } label: {
                             VStack(alignment: .leading, spacing: 4) {
                                 HStack { Text(debt.creditor); Spacer(); SensitiveAmount(value: debt.currentBalance.formatted).fontWeight(.semibold) }
+                                Text(debt.direction.title).font(.caption.weight(.medium)).foregroundStyle(debt.direction == .owedToMe ? .green : .secondary)
                                 Text("Остаток, подтверждённый вручную · обнови после реального платежа")
                                     .font(.caption2).foregroundStyle(.secondary)
                                 HStack { Text("Платёж"); SensitiveAmount(value: Money(kopecks: debt.paymentKopecks).formatted); Text("· следующий: \(debt.firstPaymentDate.formatted(date: .abbreviated, time: .omitted))") }
@@ -2101,11 +2121,11 @@ private struct AvailableBalanceCard: View {
                     }
 
                     if scheduledItems.isEmpty {
-                        Text("В ближайшем периоде нет подтверждённых платежей.")
+                        Text("В ближайшем периоде нет подтверждённых платежей или поступлений.")
                             .font(.footnote)
                             .foregroundStyle(AppPalette.heroMuted)
                     } else {
-                        Text("Подтверждённые платежи")
+                        Text("Подтверждённые события")
                             .font(.caption.weight(.semibold))
                             .foregroundStyle(AppPalette.heroMuted)
                         ForEach(scheduledItems.prefix(3)) { item in
@@ -2117,7 +2137,7 @@ private struct AvailableBalanceCard: View {
                                         .foregroundStyle(AppPalette.heroMuted)
                                 }
                                 Spacer(minLength: 8)
-                                SensitiveAmount(value: item.amount.formatted)
+                                SensitiveAmount(value: "\(item.kind == .debtCollection ? "+" : "−")\(item.amount.formatted)")
                                     .font(.footnote.weight(.semibold))
                             }
                             .foregroundStyle(AppPalette.heroInk)
@@ -3444,7 +3464,7 @@ private struct EditTransactionView: View {
                 TextField("Комментарий", text: $draft.note, axis: .vertical)
                     .lineLimit(2...4)
             }
-            Section("Учесть как оплату плана") {
+            Section("Связать с планом") {
                 Picker("Плановый платёж", selection: $selectedPlanItemID) {
                     Text("Не связывать").tag(UUID?.none)
                     ForEach(planItems) { plan in
@@ -3459,14 +3479,16 @@ private struct EditTransactionView: View {
                         Label("Эта дата не входит в расписание платежа.", systemImage: "exclamationmark.triangle.fill")
                             .font(.footnote).foregroundStyle(.orange)
                     }
-                    Text("Связь изменит прогноз только если операция проведена, дата входит в расписание и баланс обновлён после списания.")
+                    Text("Связь изменит прогноз только если операция проведена, дата входит в расписание и баланс подтверждён после операции.")
                         .font(.footnote).foregroundStyle(.secondary)
                     if settlementBalanceUpdatedAt.map({ $0 >= draft.date }) != true {
                         Label("Сначала обнови баланс счёта после этой операции.", systemImage: "arrow.clockwise.circle")
                             .font(.footnote).foregroundStyle(.orange)
                     }
-                    if transaction.status != .posted || !draft.kind.isOutflow || draft.isInternalTransfer {
-                        Label("Связать можно только проведённый внешний расход.", systemImage: "info.circle")
+                    let isDebtReceipt = selectedPlan.scheduled.kind == .debtCollection &&
+                        (draft.kind == .income || draft.kind == .incomingTransfer)
+                    if transaction.status != .posted || (!draft.kind.isOutflow && !isDebtReceipt) || draft.isInternalTransfer {
+                        Label("Свяжи проведённый внешний платёж или возврат соответствующего типа.", systemImage: "info.circle")
                             .font(.footnote).foregroundStyle(.secondary)
                     }
                 }
@@ -3709,6 +3731,7 @@ private struct EditPlanItemView: View {
     @State private var amount = ""
     @State private var dueDate = Date()
     @State private var kind: ScheduledItem.Kind = .obligation
+    @State private var confirmedInForecast = true
     @State private var recurrence: ScheduledItem.Recurrence = .none
     @State private var reminderDays = 0
     @State private var storedKindWasUnrecognized = false
@@ -3721,11 +3744,21 @@ private struct EditPlanItemView: View {
             TextField("Название", text: $title)
             TextField("Сумма, ₽", text: $amount).keyboardType(.decimalPad)
             DatePicker("Дата", selection: $dueDate, displayedComponents: .date)
-            Picker("Тип", selection: Binding(get: { kind }, set: { kind = $0; userChoseKind = true })) {
+            Picker("Тип", selection: Binding(get: { kind }, set: { value in
+                kind = value
+                userChoseKind = true
+                confirmedInForecast = value != .debtCollection
+            })) {
                 Text("Обязательство").tag(ScheduledItem.Kind.obligation)
                 Text("Взнос в цель").tag(ScheduledItem.Kind.goalContribution)
                 Text("Возврат долга").tag(ScheduledItem.Kind.debtRepayment)
+                Text("Ожидаемый возврат долга").tag(ScheduledItem.Kind.debtCollection)
                 Text("Подписка").tag(ScheduledItem.Kind.subscription)
+            }
+            if kind == .debtCollection {
+                Toggle("Подтверждено для прогноза", isOn: $confirmedInForecast)
+                Text("Не включай ожидаемый возврат в расчёт, пока дата поступления не согласована.")
+                    .font(.footnote).foregroundStyle(.secondary)
             }
             if storedKindWasUnrecognized {
                 Text("Сохранённый тип не распознан. Выбери подходящий тип вручную, чтобы исправить план.")
@@ -3761,7 +3794,8 @@ private struct EditPlanItemView: View {
                 return
             }
             let proposedPlan = ScheduledItem(id: item.id, title: normalizedTitle,
-                amount: Money(rubles: value), dueDate: dueDate, isConfirmed: item.isConfirmed,
+                amount: Money(rubles: value), dueDate: dueDate,
+                isConfirmed: kind == .debtCollection ? confirmedInForecast : item.isConfirmed,
                 kind: kind, recurrence: recurrence, occurrencesRemaining: item.occurrencesRemaining)
             let canPreserveSettlements: Bool
             do { canPreserveSettlements = try canPreserveUpcomingSettlements(for: proposedPlan, in: context) }
@@ -3777,6 +3811,7 @@ private struct EditPlanItemView: View {
                     item.finalOccurrenceKopecks = nil
                     item.dueDate = dueDate
                     item.kindRaw = kind.rawValue
+                    item.isConfirmed = kind == .debtCollection ? confirmedInForecast : item.isConfirmed
                     item.recurrenceRaw = recurrence.rawValue
                     item.reminderDays = reminderDays
                 }
@@ -3795,6 +3830,7 @@ private struct EditPlanItemView: View {
             storedKindWasUnrecognized = storedKind == nil
             storedRecurrenceWasUnrecognized = storedRecurrence == nil
             kind = storedKind ?? .obligation
+            confirmedInForecast = item.isConfirmed
             recurrence = storedRecurrence ?? .none
             reminderDays = item.reminderDays
         }
@@ -4988,6 +5024,8 @@ private struct AddDebtView: View {
     @Environment(\.modelContext) private var context
     @Environment(\.dismiss) private var dismiss
     @State private var creditor = ""
+    @State private var direction: DebtDirection = .owedByMe
+    @State private var confirmedInForecast = false
     @State private var balance = ""
     @State private var payment = ""
     @State private var firstPaymentDate = Calendar.current.date(byAdding: .day, value: 30, to: .now) ?? .now
@@ -4996,8 +5034,14 @@ private struct AddDebtView: View {
     var body: some View {
         Form {
             Section("Долг") {
-                TextField("Кому должен", text: $creditor)
-                TextField("Остаток долга, ₽", text: $balance).keyboardType(.decimalPad)
+                Picker("Направление", selection: Binding(get: { direction }, set: { value in
+                    direction = value
+                    confirmedInForecast = value == .owedByMe
+                })) {
+                    ForEach(DebtDirection.allCases, id: \.self) { Text($0.title).tag($0) }
+                }
+                TextField(direction == .owedByMe ? "Кому должен" : "Кто должен тебе", text: $creditor)
+                TextField(direction == .owedByMe ? "Остаток моего долга, ₽" : "Остаток долга мне, ₽", text: $balance).keyboardType(.decimalPad)
                 TextField("Платёж в месяц, ₽", text: $payment).keyboardType(.decimalPad)
                 DatePicker("Первый платёж", selection: $firstPaymentDate, in: Date()..., displayedComponents: .date)
                 Picker("Напомнить заранее", selection: $reminderDays) {
@@ -5005,8 +5049,18 @@ private struct AddDebtView: View {
                     Text("За день").tag(1)
                     Text("За два дня").tag(2)
                 }
+                if direction == .owedToMe {
+                    Toggle("Подтверждено для прогноза", isOn: $confirmedInForecast)
+                    Text("Не включай возврат в расчёт, пока дата поступления не согласована.")
+                        .font(.footnote).foregroundStyle(.secondary)
+                }
             }
-            Section { Text("Остаток долга не уменьшается сам по календарю. После фактического платежа обнови его вручную. План резервирует платёж каждый месяц до подтверждённого нулевого остатка.").font(.footnote).foregroundStyle(.secondary) }
+            Section {
+                Text(direction == .owedByMe
+                     ? "Остаток моего долга не уменьшается сам по календарю. После фактического платежа обнови его вручную; будущий платёж уменьшит прогноз."
+                     : "Остаток долга тебе не уменьшается сам по календарю. После фактического возврата обнови его вручную; подтверждённая дата возврата увеличит прогноз, но не текущий баланс.")
+                    .font(.footnote).foregroundStyle(.secondary)
+            }
         }
         .navigationTitle("Добавить долг")
         .saveFailureAlert($saveError)
@@ -5020,11 +5074,14 @@ private struct AddDebtView: View {
         }
         let debtBalance = Money(rubles: debtBalanceRubles), monthly = Money(rubles: monthlyRubles)
         let reservedInstallment = DebtRepaymentSchedule.reservedInstallment(balance: debtBalance, payment: monthly) ?? monthly
-        let plan = StoredPlanItem(title: "Возврат долга: \(creditor)", amount: reservedInstallment, dueDate: firstPaymentDate,
-                                  kind: .debtRepayment, recurrence: .monthly)
+        let planKind: ScheduledItem.Kind = direction == .owedByMe ? .debtRepayment : .debtCollection
+        let planTitle = direction == .owedByMe ? "Погашение долга: \(creditor)" : "Возврат долга: \(creditor)"
+        let plan = StoredPlanItem(title: planTitle, amount: reservedInstallment, dueDate: firstPaymentDate,
+                                  kind: planKind, recurrence: .monthly)
+        plan.isConfirmed = direction == .owedByMe || confirmedInForecast
         context.insert(plan)
         context.insert(StoredDebt(creditor: creditor, balance: debtBalance, payment: monthly,
-                                  firstPaymentDate: firstPaymentDate, planItemID: plan.id))
+                                  firstPaymentDate: firstPaymentDate, planItemID: plan.id, direction: direction))
         plan.reminderDays = reminderDays
         do {
             try context.save()
@@ -5040,6 +5097,8 @@ private struct EditDebtView: View {
     @Bindable var debt: StoredDebt
     let plan: StoredPlanItem?
     @State private var creditor = ""
+    @State private var direction: DebtDirection = .owedByMe
+    @State private var confirmedInForecast = false
     @State private var balance = ""
     @State private var payment = ""
     @State private var nextPaymentDate = Date()
@@ -5049,8 +5108,14 @@ private struct EditDebtView: View {
     var body: some View {
         Form {
             Section("Долг") {
-                TextField("Кому должен", text: $creditor)
-                TextField("Подтверждённый остаток, ₽", text: $balance).keyboardType(.decimalPad)
+                Picker("Направление", selection: Binding(get: { direction }, set: { value in
+                    direction = value
+                    confirmedInForecast = value == .owedByMe
+                })) {
+                    ForEach(DebtDirection.allCases, id: \.self) { Text($0.title).tag($0) }
+                }
+                TextField(direction == .owedByMe ? "Кому должен" : "Кто должен тебе", text: $creditor)
+                TextField(direction == .owedByMe ? "Подтверждённый долг, ₽" : "Подтверждённый долг тебе, ₽", text: $balance).keyboardType(.decimalPad)
                 TextField("Платёж в месяц, ₽", text: $payment).keyboardType(.decimalPad)
                 DatePicker("Следующий платёж", selection: $nextPaymentDate, in: Date()..., displayedComponents: .date)
                 Picker("Напомнить заранее", selection: $reminderDays) {
@@ -5058,11 +5123,18 @@ private struct EditDebtView: View {
                     Text("За день").tag(1)
                     Text("За два дня").tag(2)
                 }
+                if direction == .owedToMe {
+                    Toggle("Подтверждено для прогноза", isOn: $confirmedInForecast)
+                    Text("Включай только согласованную дату возврата; это будущее поступление, не деньги на счёте сейчас.")
+                        .font(.footnote).foregroundStyle(.secondary)
+                }
             }
             Section {
                 Text("Остаток должен соответствовать последней фактической информации от кредитора. Проценты и внесённые платежи автоматически не рассчитываются.")
                     .font(.footnote).foregroundStyle(.secondary)
-                Text("При нулевом остатке регулярный платёж перестанет резервироваться.")
+                Text(debt.direction == .owedByMe
+                    ? "При нулевом остатке регулярный платёж перестанет резервироваться."
+                    : "При нулевом остатке ожидаемый возврат перестанет учитываться в прогнозе.")
                     .font(.footnote).foregroundStyle(.secondary)
             }
         }
@@ -5071,10 +5143,12 @@ private struct EditDebtView: View {
         .toolbar { ToolbarItem(placement: .confirmationAction) { Button("Сохранить", action: save) } }
         .onAppear {
             creditor = debt.creditor
+            direction = debt.direction
             balance = NSDecimalNumber(decimal: Money(kopecks: debt.balanceKopecks).decimalRubles).stringValue
             payment = NSDecimalNumber(decimal: Money(kopecks: debt.paymentKopecks).decimalRubles).stringValue
             nextPaymentDate = max(debt.firstPaymentDate, .now)
             reminderDays = plan?.reminderDays ?? 0
+            confirmedInForecast = plan?.isConfirmed ?? false
         }
     }
 
@@ -5088,10 +5162,32 @@ private struct EditDebtView: View {
         let debtBalance = Money(rubles: balanceRubles)
         let monthly = Money(rubles: paymentRubles)
         let reservedInstallment = DebtRepaymentSchedule.reservedInstallment(balance: debtBalance, payment: monthly)
+        let planKind: ScheduledItem.Kind = direction == .owedByMe ? .debtRepayment : .debtCollection
+        let planTitle = direction == .owedByMe ? "Погашение долга: \(creditor)" : "Возврат долга: \(creditor)"
         if let plan {
-            let proposedPlan = ScheduledItem(id: plan.id, title: "Возврат долга: \(debt.creditor)",
+            if direction != debt.direction {
+                do {
+                    let planID = plan.id
+                    let linkedTransactions = try context.fetch(FetchDescriptor<StoredTransaction>(
+                        predicate: #Predicate { $0.scheduledPlanItemID == planID }
+                    ))
+                    let incompatibleLink = linkedTransactions.contains { row in
+                        let isReceipt = row.kind == .income || row.kind == .incomingTransfer
+                        return direction == .owedToMe ? !isReceipt : !row.kind.isOutflow
+                    }
+                    guard !incompatibleLink else {
+                        saveError = "Нельзя изменить направление долга, пока к его плану привязаны операции другого типа. Сначала отвяжи их в истории операций."
+                        return
+                    }
+                } catch {
+                    saveError = error.localizedDescription
+                    return
+                }
+            }
+            let proposedPlan = ScheduledItem(id: plan.id, title: planTitle,
                 amount: reservedInstallment ?? monthly, dueDate: nextPaymentDate,
-                isConfirmed: plan.isConfirmed, kind: .debtRepayment, recurrence: .monthly,
+                isConfirmed: direction == .owedByMe || confirmedInForecast,
+                kind: planKind, recurrence: .monthly,
                 occurrencesRemaining: debtBalance == .zero ? 0 : nil)
             let canPreserveSettlements: Bool
             do { canPreserveSettlements = try canPreserveUpcomingSettlements(for: proposedPlan, in: context) }
@@ -5102,6 +5198,7 @@ private struct EditDebtView: View {
             }
         }
         debt.creditor = creditor.trimmingCharacters(in: .whitespacesAndNewlines)
+        debt.directionRaw = direction.rawValue
         debt.balanceKopecks = debtBalance.kopecks
         debt.paymentKopecks = monthly.kopecks
         debt.firstPaymentDate = nextPaymentDate
@@ -5110,15 +5207,17 @@ private struct EditDebtView: View {
         if let plan {
             planItem = plan
         } else {
-            planItem = StoredPlanItem(title: "Возврат долга: \(debt.creditor)", amount: monthly,
-                                      dueDate: nextPaymentDate, kind: .debtRepayment, recurrence: .monthly)
+            planItem = StoredPlanItem(title: planTitle, amount: monthly,
+                                      dueDate: nextPaymentDate, kind: planKind, recurrence: .monthly)
+            planItem.isConfirmed = direction == .owedByMe || confirmedInForecast
             debt.planItemID = planItem.id
             context.insert(planItem)
         }
-        planItem.title = "Возврат долга: \(debt.creditor)"
+        planItem.title = planTitle
         planItem.amountKopecks = reservedInstallment?.kopecks ?? monthly.kopecks
         planItem.dueDate = nextPaymentDate
-        planItem.kindRaw = ScheduledItem.Kind.debtRepayment.rawValue
+        planItem.kindRaw = planKind.rawValue
+        planItem.isConfirmed = direction == .owedByMe || confirmedInForecast
         planItem.recurrenceRaw = ScheduledItem.Recurrence.monthly.rawValue
         planItem.reminderDays = reminderDays
         planItem.occurrencesRemaining = debtBalance == .zero ? 0 : nil
@@ -5141,20 +5240,30 @@ private struct AddPlanItemView: View {
     @State private var amount = ""
     @State private var date = Calendar.current.date(byAdding: .day, value: 1, to: .now) ?? .now
     @State private var kind: ScheduledItem.Kind = .obligation
+    @State private var confirmedInForecast = false
     @State private var recurrence: ScheduledItem.Recurrence = .none
     @State private var reminderDays = 0
     @State private var saveError: String?
     var body: some View {
         Form {
-            Section("Запланированный расход") {
-                TextField("Например: дорога", text: $title)
+            Section(kind == .debtCollection ? "Ожидаемое поступление" : "Запланированное событие") {
+                TextField("Например: дорога или возврат долга", text: $title)
                 TextField("Сумма, ₽", text: $amount).keyboardType(.decimalPad)
                 DatePicker("Дата", selection: $date, in: Date()..., displayedComponents: .date)
-                Picker("Тип", selection: $kind) {
+                Picker("Тип", selection: Binding(get: { kind }, set: { value in
+                    kind = value
+                    confirmedInForecast = value != .debtCollection
+                })) {
                     Text("Обязательство").tag(ScheduledItem.Kind.obligation)
                     Text("Взнос в цель").tag(ScheduledItem.Kind.goalContribution)
                     Text("Возврат долга").tag(ScheduledItem.Kind.debtRepayment)
+                    Text("Ожидаемый возврат долга").tag(ScheduledItem.Kind.debtCollection)
                     Text("Подписка").tag(ScheduledItem.Kind.subscription)
+                }
+                if kind == .debtCollection {
+                    Toggle("Подтверждено для прогноза", isOn: $confirmedInForecast)
+                    Text("Не включай ожидаемый возврат в расчёт, пока дата поступления не согласована.")
+                        .font(.footnote).foregroundStyle(.secondary)
                 }
                 Picker("Повтор", selection: $recurrence) {
                     Text("Один раз").tag(ScheduledItem.Recurrence.none)
@@ -5181,6 +5290,7 @@ private struct AddPlanItemView: View {
         }
         let item = StoredPlanItem(title: title, amount: Money(rubles: parsed), dueDate: date,
                                   kind: kind, recurrence: recurrence, reminderDays: reminderDays)
+        item.isConfirmed = kind != .debtCollection || confirmedInForecast
         context.insert(item)
         do {
             try context.save()

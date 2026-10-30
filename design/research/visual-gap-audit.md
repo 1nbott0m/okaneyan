@@ -283,3 +283,13 @@ All archived A/B/C screenshots use the same sample amount and dates. They are va
 - **G2:** NOT TESTED visually. No after screenshot of the edit form or a renamed imported row was captured.
 - **G4:** generic iOS Simulator build and app launch passed after change. Updating over the isolated simulator's prior app/store opened the existing store and retained the imported operation on Overview. No add/edit comment interaction was performed.
 - **Limits:** direct comment save/relaunch behavior, VoiceOver labels and Dynamic Type layout are unverified.
+
+## Debt direction in planning and forecast — 2026-10-30
+
+- **Concrete gap:** the existing debt form and model represented only money the user owed; the required “мне должны” case could not be recorded or projected correctly.
+- **G0:** PARTIAL; reviewed the current Plan debt rows, Add/Edit debt forms, plan event list and Horizon event detail in source. No before capture of the debt form was available.
+- **G1:** retain approved D1 dark Editorial/Okaneyan and existing native Form/list; distinguish direction and event polarity with text and existing income/outflow symbols. No new visual direction.
+- **Change:** add the second debt direction, an explicit confirmation control before a receivable enters forecast, and an incoming-debt event. Existing direction-less rows default to “я должен”. Linked incoming transactions settle receivable occurrences; incompatible linked transactions block direction changes. Overview/Horizon label the expected return as an inflow.
+- **G2:** NOT TESTED visually; no after screenshot of debt creation/edit or the horizon return row.
+- **G4:** app-target Simulator build and launch succeeded over an existing local store. Focused standalone MoneyCore check passed for confirmed inflow, unconfirmed exclusion, repayment outflow and settlement-kind matching. Debt UI interactions were not automated.
+- **Limits:** principal remains manually confirmed. Interest and a separate debt-balance change log are not implemented; linked transaction history remains in Operations. VoiceOver/Dynamic Type and physical-device appearance are unverified.

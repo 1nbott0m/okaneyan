@@ -22,7 +22,7 @@ public struct FinanceEngine: Sendable {
                            from: start, through: end, calendar: calendar)
             .filter { $0.item.isConfirmed }
             .map { PlannedOccurrence(planID: $0.item.id, title: $0.item.title,
-                                     amount: $0.item.amount, date: $0.date) }
+                                     amount: $0.item.amount, date: $0.date, kind: $0.item.kind) }
             .sorted { $0.date == $1.date ? $0.id < $1.id : $0.date < $1.date }
     }
 
@@ -311,7 +311,11 @@ public struct FinanceEngine: Sendable {
         var events = occurrences(snapshot.scheduledItems, settlements: snapshot.scheduledSettlements,
                                  from: now, through: end, calendar: calendar)
             .filter { $0.item.isConfirmed }
-            .map { CashFlowEvent(date: $0.date, delta: -nonNegative($0.item.amount)) }
+            .map { occurrence in
+                let amount = nonNegative(occurrence.item.amount)
+                let delta = occurrence.item.kind == .debtCollection ? amount : -amount
+                return CashFlowEvent(date: occurrence.date, delta: delta)
+            }
         events += snapshot.incomes.filter { $0.isConfirmed && $0.date >= now && $0.date <= end }
             .map { CashFlowEvent(date: $0.date, delta: $0.amount) }
         if let purchase, purchaseDate >= now && purchaseDate < end {

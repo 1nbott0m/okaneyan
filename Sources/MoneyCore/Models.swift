@@ -135,6 +135,32 @@ public enum DebtRepaymentSchedule {
     }
 }
 
+/// A separately modeled receivable; confirmed repayments increase projected cash.
+public enum DebtCollectionSchedule {
+    public static func matchesPlan(balance: Money, payment: Money, firstPaymentDate: Date,
+                                   plan: ScheduledItem, linkedDebtCount: Int = 1) -> Bool {
+        guard balance >= .zero, payment > .zero, linkedDebtCount == 1,
+              firstPaymentDate.timeIntervalSince1970.isFinite,
+              plan.kind == .debtCollection, plan.recurrence == .monthly,
+              plan.dueDate == firstPaymentDate else { return false }
+        let expectedInstallment = balance == .zero ? payment : min(balance, payment)
+        guard plan.amount == expectedInstallment else { return false }
+        return balance == .zero ? plan.occurrencesRemaining == 0 : plan.occurrencesRemaining == nil
+    }
+}
+
+public enum DebtDirection: String, Codable, CaseIterable, Sendable {
+    case owedByMe
+    case owedToMe
+
+    public var title: String {
+        switch self {
+        case .owedByMe: "Я должен"
+        case .owedToMe: "Мне должны"
+        }
+    }
+}
+
 public enum TransactionKind: String, Codable, CaseIterable, Sendable {
     case purchase, income, transfer, incomingTransfer, refund, fee, adjustment
 
@@ -371,7 +397,7 @@ public struct ScheduledItem: Codable, Identifiable, Hashable, Sendable {
     public var recurrence: Recurrence
     public var occurrencesRemaining: Int?
     public var finalOccurrenceAmount: Money?
-    public enum Kind: String, Codable, Sendable { case obligation, goalContribution, debtRepayment, subscription }
+    public enum Kind: String, Codable, Sendable { case obligation, goalContribution, debtRepayment, debtCollection, subscription }
     public enum Recurrence: String, Codable, Sendable { case none, weekly, monthly, yearly }
     public init(id: UUID = UUID(), title: String, amount: Money, dueDate: Date,
                 isConfirmed: Bool = true, kind: Kind = .obligation, recurrence: Recurrence = .none,
@@ -389,12 +415,14 @@ public struct PlannedOccurrence: Identifiable, Hashable, Sendable {
     public let title: String
     public let amount: Money
     public let date: Date
+    public let kind: ScheduledItem.Kind
 
-    public init(planID: UUID, title: String, amount: Money, date: Date) {
+    public init(planID: UUID, title: String, amount: Money, date: Date, kind: ScheduledItem.Kind = .obligation) {
         self.planID = planID
         self.title = title
         self.amount = amount
         self.date = date
+        self.kind = kind
         id = "\(planID.uuidString)-\(date.timeIntervalSince1970)"
     }
 }
@@ -777,7 +805,13 @@ public enum ScheduledSettlementPolicy {
     public static func makeSettlement(transaction: Transaction, item: ScheduledItem,
                                       occurrenceDate: Date, settlements: [ScheduledSettlement],
                                       calendar: Calendar = .current) -> ScheduledSettlement? {
-        guard transaction.isPosted, transaction.isOutflow, !transaction.isInternalTransfer,
+        let directionMatches: Bool
+        if item.kind == .debtCollection {
+            directionMatches = transaction.kind == .income || transaction.kind == .incomingTransfer
+        } else {
+            directionMatches = transaction.isOutflow
+        }
+        guard transaction.isPosted, directionMatches, !transaction.isInternalTransfer,
               transaction.amount > .zero,
               ScheduledRecurrence.isOccurrence(occurrenceDate, of: item, calendar: calendar),
               !settlements.contains(where: { $0.transactionID == transaction.id }) else { return nil }
