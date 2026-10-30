@@ -14,7 +14,14 @@
 - **Observe:** three visual transitions in SwiftUI were unconditional: the root tab spring, numeric amount masking transition and cinematic intro fade/wait. `accessibilityReduceMotion` already existed in the relevant native surfaces.
 - **Change:** conditionally disable those extra transitions and avoid the intro delay when Reduce Motion is enabled. Financial values and action timing stay unchanged.
 - **Verify:** `swiftc -frontend -parse` passed for both changed SwiftUI files; `swift build` exited 0 and MoneyCore checks exited 0 with 316 `PASS` lines.
-- **Limit:** `swift build` does not compile the iOS app target. Full Xcode/Simulator is not available, so native runtime and system Reduce Motion remain `NOT RUN`.
+- **Limit:** `swift build` does not compile the iOS app target. Full Xcode/Simulator was not available during this source pass, so native runtime and system Reduce Motion remained `NOT RUN` at that point.
+
+### 2026-10-30 follow-up — Orbit O host transition
+
+- **Observe:** `OkaneyanLaunchIntro` pauses its timeline and settles its mark under `accessibilityReduceMotion`, but `MoneyWiseApp` still wrapped overlay completion in an unconditional 200 ms fade. This host transition was outside the prior component-level source pass.
+- **Reference / direction:** locked Orbit O geometry and readiness contract in `design/brand/okaneyan-orbit-o/Design/MOTION-SPEC.md`; keep the approved static docked mark and immediate readiness handoff, without a new visual effect.
+- **Change:** use a nil animation transaction for host completion when Reduce Motion is enabled.
+- **Verify:** Xcode app-target build completed; Reduce Motion preference was enabled in a newly created iPhone 18 Pro Simulator, the app launched, and its ready Overview was captured at `design/research/evidence/2026-10-30/ios-overview-reduce-motion-after.png`. This does not measure the 200 ms transition frame-by-frame or exercise the waiting orbit under slow startup.
 
 ## 2026-10-29 — empty history preview state
 

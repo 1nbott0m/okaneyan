@@ -12,6 +12,7 @@ struct MoneyWiseApp: App {
     @State private var isRootReady = false
     @State private var isShowingIntro = true
     @State private var hasFinishedIntro = false
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @AppStorage("okaneyan.hasShownIntro") private var hasShownIntro = false
     @AppStorage("okaneyan.appearanceMode") private var appearanceMode = "dark"
 
@@ -46,7 +47,7 @@ struct MoneyWiseApp: App {
             .overlay {
                 if startup.container != nil && isShowingIntro {
                     OkaneyanLaunchIntro(isAppReady: isRootReady) {
-                        withAnimation(.easeOut(duration: 0.2)) {
+                        withAnimation(reduceMotion ? nil : .easeOut(duration: 0.2)) {
                             hasShownIntro = true
                             hasFinishedIntro = true
                             isShowingIntro = false
