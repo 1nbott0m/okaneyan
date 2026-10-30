@@ -43,6 +43,7 @@ final class MoneyWiseUserFlowTests: XCTestCase {
         app.navigationBars.buttons.firstMatch.tap()
 
         let merchant = "Проверочная покупка \(suffix)"
+        let transactionNote = "Чек сохранён для проверки \(suffix)"
         let addTransactionButton = app.buttons["Добавить операцию"]
         XCTAssertTrue(addTransactionButton.waitForExistence(timeout: 5))
         addTransactionButton.tap()
@@ -54,6 +55,11 @@ final class MoneyWiseUserFlowTests: XCTestCase {
         let amountField = app.textFields["Сумма, ₽"]
         amountField.tap()
         amountField.typeText("350")
+        let noteField = app.descendants(matching: .any)
+            .matching(identifier: "Комментарий").firstMatch
+        XCTAssertTrue(noteField.waitForExistence(timeout: 5), "Форма добавления должна показывать комментарий операции")
+        noteField.tap()
+        noteField.typeText(transactionNote)
         app.buttons["Сохранить"].tap()
 
         XCTAssertTrue(app.staticTexts[merchant].waitForExistence(timeout: 10), "Покупка должна появиться на обзоре")
@@ -68,6 +74,10 @@ final class MoneyWiseUserFlowTests: XCTestCase {
         refreshedAccountsLink.tap()
         XCTAssertTrue(app.staticTexts[accountName].waitForExistence(timeout: 10), "Счёт должен пережить перезапуск")
         app.navigationBars.buttons.firstMatch.tap()
+        app.tabBars.buttons["Операции"].tap()
+        XCTAssertTrue(app.staticTexts[transactionNote].waitForExistence(timeout: 10),
+                      "Комментарий операции должен сохраниться после перезапуска")
+        app.tabBars.buttons["Обзор"].tap()
         let recentTransaction = app.staticTexts[merchant]
         let scrollStart = app.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.82))
         let scrollEnd = app.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.35))
