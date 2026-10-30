@@ -367,7 +367,7 @@ extension MoneyWiseUserFlowTests {
         let creditorField = app.textFields["Кому должен"]
         creditorField.tap()
         creditorField.typeText(creditor)
-        let debtBalance = app.textFields["Остаток долга, ₽"]
+        let debtBalance = app.textFields["Остаток моего долга, ₽"]
         debtBalance.tap()
         debtBalance.typeText("3000")
         let payment = app.textFields["Платёж в месяц, ₽"]
@@ -375,6 +375,38 @@ extension MoneyWiseUserFlowTests {
         payment.typeText("500")
         app.buttons["Сохранить"].tap()
         XCTAssertTrue(app.staticTexts[creditor].waitForExistence(timeout: 8), "Долг должен появиться в плане")
+
+        let receivableName = "Тестовый возврат"
+        let addReceivable = app.buttons["Добавить долг"]
+        for _ in 0..<8 where !addReceivable.isHittable { app.swipeUp() }
+        XCTAssertTrue(addReceivable.waitForExistence(timeout: 5))
+        addReceivable.tap()
+        XCTAssertTrue(app.navigationBars["Добавить долг"].waitForExistence(timeout: 5))
+        let debtDirection = app.descendants(matching: .any)
+            .matching(NSPredicate(format: "label CONTAINS %@", "Направление"))
+            .firstMatch
+        XCTAssertTrue(debtDirection.waitForExistence(timeout: 5))
+        debtDirection.tap()
+        let owedToMeOption = app.buttons["Мне должны"]
+        XCTAssertTrue(owedToMeOption.waitForExistence(timeout: 5))
+        owedToMeOption.tap()
+
+        let debtorField = app.textFields["Кто должен тебе"]
+        XCTAssertTrue(debtorField.waitForExistence(timeout: 5))
+        debtorField.tap()
+        debtorField.typeText(receivableName)
+        let receivableBalance = app.textFields["Остаток долга мне, ₽"]
+        receivableBalance.tap()
+        receivableBalance.typeText("7000")
+        let receivablePayment = app.textFields["Платёж в месяц, ₽"]
+        receivablePayment.tap()
+        receivablePayment.typeText("1000")
+        let forecastConfirmation = app.switches["Подтверждено для прогноза"]
+        XCTAssertTrue(forecastConfirmation.waitForExistence(timeout: 5))
+        XCTAssertEqual(forecastConfirmation.value as? String, "0", "Возврат не должен влиять на прогноз до подтверждения")
+        app.buttons["Сохранить"].tap()
+        XCTAssertTrue(app.staticTexts[receivableName].waitForExistence(timeout: 8), "Ожидаемый возврат должен появиться в плане")
+        XCTAssertTrue(app.staticTexts["Мне должны"].waitForExistence(timeout: 5), "Направление долга должно быть явно показано")
 
         app.terminate()
         app.launch()
@@ -385,6 +417,9 @@ extension MoneyWiseUserFlowTests {
         XCTAssertTrue(app.staticTexts["Продукты"].waitForExistence(timeout: 8), "Бюджет должен пережить перезапуск")
         for _ in 0..<8 where !app.staticTexts[creditor].isHittable { app.swipeUp() }
         XCTAssertTrue(app.staticTexts[creditor].waitForExistence(timeout: 8), "Долг должен пережить перезапуск")
+        for _ in 0..<8 where !app.staticTexts[receivableName].isHittable { app.swipeUp() }
+        XCTAssertTrue(app.staticTexts[receivableName].waitForExistence(timeout: 8), "Ожидаемый возврат должен пережить перезапуск")
+        XCTAssertTrue(app.staticTexts["Мне должны"].exists, "Направление долга должно сохраниться после перезапуска")
     }
 
     @MainActor
