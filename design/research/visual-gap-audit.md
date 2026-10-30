@@ -273,3 +273,13 @@ All archived A/B/C screenshots use the same sample amount and dates. They are va
 - **G3:** NOT TESTED independently.
 - **G4:** focused standalone MoneyCore compile/run passed for purchase, daily-limit, available-cash, horizon suppression and legacy `FinanceSnapshot` decoding. Current full iOS app build is pending; no UI test was added or run.
 - **Limits:** comparison uses transaction date because stored transactions have no entry timestamp. A backdated transaction entered after the balance may not trigger it. UI branch visual rendering and physical-device behavior remain unverified.
+
+## Operation comments and imported-description provenance — 2026-10-30
+
+- **Concrete gap:** MoneyCore `Transaction` had a note field, but `StoredTransaction` discarded it and the add/edit forms offered no comment input. After renaming an imported operation, the list also hid the retained `originalMerchant` value.
+- **G0:** PARTIAL; confirmed directly from the SwiftData model, add/edit form and transaction-row source. A before screenshot of the native edit form was not captured.
+- **G1:** keep approved dark Editorial/Okaneyan D1 and the existing native Form/list pattern; no new visual direction or category system.
+- **Change:** add optional persisted notes, expose multiline comment input in add/edit, display comments in the operation list, and show original statement description on renamed imported operations.
+- **G2:** NOT TESTED visually. No after screenshot of the edit form or a renamed imported row was captured.
+- **G4:** generic iOS Simulator build and app launch passed after change. Updating over the isolated simulator's prior app/store opened the existing store and retained the imported operation on Overview. No add/edit comment interaction was performed.
+- **Limits:** direct comment save/relaunch behavior, VoiceOver labels and Dynamic Type layout are unverified.

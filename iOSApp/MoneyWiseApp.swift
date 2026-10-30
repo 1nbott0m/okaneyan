@@ -201,6 +201,7 @@ private struct StoreOpenFailureView: View {
     var internalTransfer: Bool
     var incomeSourceRaw: String
     var originalMerchant: String
+    var note: String?
     init(_ transaction: Transaction, sourceAccountID: UUID? = nil) {
         id = transaction.id; date = transaction.date; merchant = transaction.merchant
         amountKopecks = transaction.amount.kopecks; kindRaw = transaction.kind.rawValue
@@ -215,6 +216,7 @@ private struct StoreOpenFailureView: View {
         internalTransfer = transaction.isInternalTransfer
         incomeSourceRaw = transaction.incomeSource?.rawValue ?? (transaction.kind == .income ? IncomeSource.other.rawValue : "")
         originalMerchant = transaction.merchant
+        note = transaction.note.isEmpty ? nil : transaction.note
     }
     var amount: Money { Money(kopecks: amountKopecks) }
     var kind: TransactionKind { TransactionKind.restoring(kindRaw) }
@@ -2610,6 +2612,14 @@ private struct TransactionRow: View {
                     Text("Связано с исходной расходной операцией").font(.caption2).foregroundStyle(.tertiary)
                 }
                 if let accountName { Text(accountName).font(.caption2).foregroundStyle(.tertiary) }
+                if transaction.originalMerchant != transaction.merchant,
+                   transaction.sourceID != nil || transaction.providerTransactionID != nil {
+                    Text("В выписке: \(transaction.originalMerchant)")
+                        .font(.caption2).foregroundStyle(.tertiary).lineLimit(2)
+                }
+                if let note = transaction.note, !note.isEmpty {
+                    Text(note).font(.caption2).foregroundStyle(.secondary).lineLimit(2)
+                }
             }
             Spacer()
             SensitiveAmount(value: "\(amountPrefix)\(transaction.amount.formatted)").font(AppTypography.amount(15, weight: .semibold))
@@ -3185,6 +3195,7 @@ private struct AddTransactionView: View {
     @State private var category: Category = .other
     @State private var internalTransfer = false
     @State private var incomeSource: IncomeSource = .other
+    @State private var note = ""
     @State private var date = Date()
     @State private var saveError: String?
     var body: some View {
@@ -3225,6 +3236,8 @@ private struct AddTransactionView: View {
                         }
                     }
                     DatePicker("Дата", selection: $date, displayedComponents: .date)
+                    TextField("Комментарий", text: $note, axis: .vertical)
+                        .lineLimit(2...4)
                 }
             }
             .onChange(of: kind) { _, newKind in
@@ -3258,6 +3271,7 @@ private struct AddTransactionView: View {
         context.insert(StoredTransaction(Transaction(date: date, merchant: merchant,
             amount: Money(rubles: rubles), kind: kind, category: safeCategory,
             incomeSource: kind == .income || kind == .incomingTransfer ? incomeSource : nil,
+            note: note.trimmingCharacters(in: .whitespacesAndNewlines),
             isInternalTransfer: internalTransfer)))
         do { try context.save(); dismiss() }
         catch { context.rollback(); saveError = error.localizedDescription }
@@ -3327,6 +3341,7 @@ private struct EditTransactionView: View {
             category: transaction.kind == .purchase && !transaction.category.supportsPurchaseClassification ? .other : transaction.category,
             incomeSource: transaction.kind == .income ? transaction.incomeSource :
                 (transaction.kind == .incomingTransfer && !transaction.incomeSourceRaw.isEmpty ? transaction.incomeSource : nil),
+            note: transaction.note ?? "",
             isInternalTransfer: transaction.internalTransfer, sourceID: transaction.sourceID
         ))
         _amountText = State(initialValue: NSDecimalNumber(decimal: transaction.amount.decimalRubles).stringValue)
@@ -3337,6 +3352,10 @@ private struct EditTransactionView: View {
         Form {
             Section("Операция") {
                 TextField("Название", text: $draft.merchant)
+                if transaction.originalMerchant != transaction.merchant,
+                   transaction.sourceID != nil || transaction.providerTransactionID != nil {
+                    LabeledContent("Исходное описание выписки", value: transaction.originalMerchant)
+                }
                 Picker("Тип", selection: Binding(get: { draft.kind }, set: updateKind)) {
                     Text("Покупка или расход").tag(TransactionKind.purchase)
                     Text("Доход").tag(TransactionKind.income)
@@ -3422,6 +3441,8 @@ private struct EditTransactionView: View {
                     }
                 }
                 DatePicker("Дата", selection: $draft.date, displayedComponents: .date)
+                TextField("Комментарий", text: $draft.note, axis: .vertical)
+                    .lineLimit(2...4)
             }
             Section("Учесть как оплату плана") {
                 Picker("Плановый платёж", selection: $selectedPlanItemID) {
@@ -3624,6 +3645,7 @@ private struct EditTransactionView: View {
             ))
             let original = Transaction(date: transaction.date, merchant: transaction.merchant,
                 amount: transaction.amount, kind: transaction.kind, category: transaction.category,
+                note: transaction.note ?? "",
                 isInternalTransfer: transaction.internalTransfer, sourceID: transaction.sourceID,
                 status: transaction.status, providerTransactionID: transaction.providerTransactionID,
                 refundOfProviderTransactionID: transaction.refundOfProviderTransactionID,
@@ -3640,6 +3662,8 @@ private struct EditTransactionView: View {
                     linkedRefunds.forEach { $0.refundOfTransactionID = nil }
                 }
                 transaction.merchant = draft.merchant.trimmingCharacters(in: .whitespacesAndNewlines)
+                let cleanedNote = draft.note.trimmingCharacters(in: .whitespacesAndNewlines)
+                transaction.note = cleanedNote.isEmpty ? nil : cleanedNote
                 transaction.date = draft.date
                 transaction.amountKopecks = draft.amount.kopecks
                 transaction.kindRaw = draft.kind.rawValue
