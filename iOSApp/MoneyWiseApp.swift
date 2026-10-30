@@ -2013,6 +2013,7 @@ private struct AvailableBalanceCard: View {
     let onConfigure: () -> Void
 
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     @AppStorage("moneywise.hideAmounts") private var hideAmounts = false
     @Namespace private var balanceNamespace
     @State private var isExpanded = false
@@ -2024,17 +2025,29 @@ private struct AvailableBalanceCard: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 11) {
-            HStack(spacing: 8) {
+            HStack(alignment: .top, spacing: 8) {
                 Circle().fill(AppPalette.heroAccent).frame(width: 7, height: 7)
+                    .padding(.top, dynamicTypeSize.isAccessibilitySize ? 8 : 0)
                     .accessibilityHidden(true)
                 Text("ДЕНЕЖНЫЙ ГОРИЗОНТ")
                     .font(.caption.weight(.semibold))
                     .tracking(1.1)
                     .foregroundStyle(AppPalette.heroMuted)
+                    .lineLimit(dynamicTypeSize.isAccessibilitySize ? nil : 1)
+                    .fixedSize(horizontal: false, vertical: true)
                 Spacer(minLength: 0)
+                if !dynamicTypeSize.isAccessibilitySize {
+                    Image(systemName: "arrow.up.right")
+                        .font(.caption.weight(.semibold))
+                        .foregroundStyle(AppPalette.heroMuted)
+                        .accessibilityHidden(true)
+                }
+            }
+            if dynamicTypeSize.isAccessibilitySize {
                 Image(systemName: "arrow.up.right")
                     .font(.caption.weight(.semibold))
                     .foregroundStyle(AppPalette.heroMuted)
+                    .frame(maxWidth: .infinity, alignment: .trailing)
                     .accessibilityHidden(true)
             }
 
@@ -2057,15 +2070,23 @@ private struct AvailableBalanceCard: View {
             }
 
             if let accountBalance {
-                HStack(alignment: .firstTextBaseline, spacing: 8) {
-                    Text("На счетах")
-                        .font(.footnote.weight(.medium))
-                        .foregroundStyle(AppPalette.heroMuted)
-                    Spacer(minLength: 8)
-                    SensitiveAmount(value: accountBalance.formatted)
-                        .font(.footnote.weight(.semibold))
-                        .monospacedDigit()
-                        .foregroundStyle(AppPalette.heroInk)
+                Group {
+                    if dynamicTypeSize.isAccessibilitySize {
+                        VStack(alignment: .leading, spacing: 4) {
+                            Text("На счетах")
+                                .font(.footnote.weight(.medium))
+                                .foregroundStyle(AppPalette.heroMuted)
+                            accountBalanceAmount(accountBalance)
+                        }
+                    } else {
+                        HStack(alignment: .firstTextBaseline, spacing: 8) {
+                            Text("На счетах")
+                                .font(.footnote.weight(.medium))
+                                .foregroundStyle(AppPalette.heroMuted)
+                            Spacer(minLength: 8)
+                            accountBalanceAmount(accountBalance)
+                        }
+                    }
                 }
                 .accessibilityElement(children: .combine)
                 Text(accountBalanceStatus)
@@ -2226,6 +2247,13 @@ private struct AvailableBalanceCard: View {
                     state = value.location
                 }
         )
+    }
+
+    private func accountBalanceAmount(_ accountBalance: Money) -> some View {
+        SensitiveAmount(value: accountBalance.formatted)
+            .font(.footnote.weight(.semibold))
+            .monospacedDigit()
+            .foregroundStyle(AppPalette.heroInk)
     }
 
     private func metallicEdgePath(in size: CGSize, around point: CGPoint) -> Path {
