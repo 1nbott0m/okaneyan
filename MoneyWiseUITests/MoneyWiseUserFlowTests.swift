@@ -34,7 +34,7 @@ final class MoneyWiseUserFlowTests: XCTestCase {
         app.buttons["Сохранить"].tap()
 
         XCTAssertTrue(app.staticTexts[accountName].waitForExistence(timeout: 5), "Счёт должен сохраниться в SwiftData")
-        XCTAssertTrue(app.staticTexts.matching(NSPredicate(format: "label CONTAINS %@", "Проверен")).firstMatch.exists,
+        XCTAssertTrue(app.staticTexts.matching(NSPredicate(format: "label CONTAINS %@", "Подтверждён")).firstMatch.exists,
                       "Строка счёта должна показывать дату проверки баланса")
         let balanceFreshnessEvidence = XCTAttachment(screenshot: XCUIScreen.main.screenshot())
         balanceFreshnessEvidence.name = "Account balance freshness shown in account list"

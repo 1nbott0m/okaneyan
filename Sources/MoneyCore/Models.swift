@@ -847,6 +847,9 @@ public struct FinanceSnapshot: Codable, Sendable {
     /// False when persisted plan rows contain values that cannot be interpreted safely.
     public var hasValidPlanData: Bool
     public var dataUpdatedAt: Date?
+    /// A known posted/imported operation is dated after the confirmed balance snapshot.
+    /// Until the user reconciles the balance, safe-to-spend advice must fail closed.
+    public var balanceReconciliationIssue: String?
     public var goalAllocations: [GoalReserveAllocation]
     public var namedReserveAllocations: [NamedReserveAllocation]
     public var usesReserveAllocations: Bool
@@ -856,7 +859,8 @@ public struct FinanceSnapshot: Codable, Sendable {
                 nextIncomeConfirmed: Bool = false, nextIncomeDate: Date? = nil,
                 forecastDailySpend: Money = .zero, hasReliableSpendForecast: Bool = true,
                 hasValidPlanData: Bool = true,
-                dataUpdatedAt: Date? = nil, goalReserve: Money = .zero, earmarkedReserve: Money = .zero,
+                dataUpdatedAt: Date? = nil, balanceReconciliationIssue: String? = nil,
+                goalReserve: Money = .zero, earmarkedReserve: Money = .zero,
                 goalAllocations: [GoalReserveAllocation] = [],
                 namedReserveAllocations: [NamedReserveAllocation] = [],
                 usesReserveAllocations: Bool = false) {
@@ -869,6 +873,7 @@ public struct FinanceSnapshot: Codable, Sendable {
         self.hasReliableSpendForecast = hasReliableSpendForecast
         self.hasValidPlanData = hasValidPlanData
         self.dataUpdatedAt = dataUpdatedAt; self.goalReserve = goalReserve
+        self.balanceReconciliationIssue = balanceReconciliationIssue
         self.goalAllocations = goalAllocations
         self.namedReserveAllocations = namedReserveAllocations
         self.usesReserveAllocations = usesReserveAllocations
@@ -878,6 +883,7 @@ public struct FinanceSnapshot: Codable, Sendable {
         case bankBalances, protectedReserve, earmarkedReserve, goalReserve, scheduledItems
         case scheduledSettlements, incomes, nextIncomeDate, nextIncomeConfirmed
         case forecastDailySpend, hasReliableSpendForecast, hasValidPlanData, dataUpdatedAt
+        case balanceReconciliationIssue
         case goalAllocations, namedReserveAllocations, usesReserveAllocations
     }
 
@@ -899,6 +905,7 @@ public struct FinanceSnapshot: Codable, Sendable {
         // were decoded strictly, so a decodable legacy snapshot has interpretable plan data.
         hasValidPlanData = try values.decodeIfPresent(Bool.self, forKey: .hasValidPlanData) ?? true
         dataUpdatedAt = try values.decodeIfPresent(Date.self, forKey: .dataUpdatedAt)
+        balanceReconciliationIssue = try values.decodeIfPresent(String.self, forKey: .balanceReconciliationIssue)
         goalAllocations = try values.decodeIfPresent([GoalReserveAllocation].self, forKey: .goalAllocations) ?? []
         namedReserveAllocations = try values.decodeIfPresent([NamedReserveAllocation].self,
             forKey: .namedReserveAllocations) ?? []

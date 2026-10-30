@@ -668,6 +668,7 @@ private struct RootView: View {
                                    includedAccounts.map(\.updatedAt),
                                    fallback: accounts.isEmpty ? s.updatedAt : nil
                                ),
+                               balanceReconciliationIssue: balanceReconciliationIssue,
                                goalReserve: goals.reduce(Money.zero) { total, goal in
                                    total + GoalContributionPlan.reservedAmount(
                                        target: Money(kopecks: goal.targetKopecks), saved: Money(kopecks: goal.savedKopecks))
@@ -686,6 +687,34 @@ private struct RootView: View {
                                },
                                usesReserveAllocations: true)
     }
+
+    /// A dated operation later than an account balance snapshot can make the displayed
+    /// balance stale even when the account's confirmation timestamp is recent. We do not
+    /// infer a replacement balance from an incomplete transaction history.
+    private var balanceReconciliationIssue: String? {
+        let includedTransactions = transactionsFromIncludedAccounts(dashboardTransactions)
+        if accounts.isEmpty {
+            guard settings.hasManualBalance, let confirmedAt = settings.updatedAt else { return nil }
+            guard let transaction = includedTransactions
+                .filter({ $0.status == .posted && $0.date > confirmedAt })
+                .max(by: { $0.date < $1.date }) else { return nil }
+            return reconciliationMessage(transactionDate: transaction.date, confirmedAt: confirmedAt)
+        }
+
+        let includedAccounts = accounts.filter(\.included)
+        for account in includedAccounts {
+            guard let transaction = includedTransactions
+                .filter({ $0.sourceAccountID == account.id && $0.status == .posted && $0.date > account.updatedAt })
+                .max(by: { $0.date < $1.date }) else { continue }
+            return reconciliationMessage(transactionDate: transaction.date, confirmedAt: account.updatedAt)
+        }
+        return nil
+    }
+
+    private func reconciliationMessage(transactionDate: Date, confirmedAt: Date) -> String {
+        "Есть операция от \(transactionDate.formatted(date: .abbreviated, time: .omitted)), датированная позже подтверждения баланса (\(confirmedAt.formatted(date: .abbreviated, time: .omitted))). Сверь операции и подтверди текущую сумму счёта: остаток не пересчитывается автоматически."
+    }
+
     private var effectiveReserveTotals: ProtectedReserveTotals {
         let end = settings.hasConfirmedFutureIncome ? (settings.nextIncomeDate ?? .now) : .now
         return FinanceEngine().protectedReserveTotals(snapshot, from: .now, through: end)
@@ -696,6 +725,7 @@ private struct RootView: View {
               let incomeDate = snapshot.nextIncomeDate, incomeDate > .now,
               FinancePlanningPolicy.supportsForecast(from: .now, to: incomeDate),
               snapshot.nextIncomeConfirmed,
+              snapshot.balanceReconciliationIssue == nil,
               FinanceDataFreshness.isFresh(snapshot.dataUpdatedAt, asOf: .now) else { return false }
         return true
     }
@@ -706,6 +736,7 @@ private struct RootView: View {
     }
 
     private var availableNowExplanation: String {
+        if let issue = snapshot.balanceReconciliationIssue { return issue }
         guard snapshot.hasValidPlanData else {
             return "Проверь операции, планы, долги, цели и резервы: часть данных не распознана или связь платежа с долгом/целью повреждена."
         }
@@ -734,7 +765,7 @@ private struct RootView: View {
             return "Время обновления баланса позже текущего времени. Проверьте дату и время на iPhone."
         }
         guard FinanceDataFreshness.isFresh(updatedAt, asOf: .now) else {
-            return "Баланс не обновлялся больше 72 часов. Обновите данные."
+            return "Баланс не обновлялся больше 72 часов. Последнее подтверждение: \(updatedAt.formatted(date: .abbreviated, time: .shortened)). Обновите данные."
         }
         return "С учётом резервов, обязательств и обычных расходов."
     }
@@ -961,6 +992,7 @@ private struct RootView: View {
                         explanation: availableNowExplanation,
                     accountBalance: snapshot.bankBalances.isEmpty ||
                         !IdentityIntegrity.hasUniqueIdentifiers(accounts.map(\.id)) ? nil : snapshot.currentBalance,
+                        accountBalanceStatus: snapshot.balanceReconciliationIssue ?? balanceFreshnessLabel(for: snapshot.dataUpdatedAt),
                         reserve: Money(kopecks: settings.reserveKopecks) + effectiveReserveTotals.named,
                         goalReserve: effectiveReserveTotals.goals,
                         averageDailySpend: snapshot.hasReliableSpendForecast ? snapshot.forecastDailySpend : nil,
@@ -1948,6 +1980,7 @@ private struct AvailableBalanceCard: View {
     let amount: String
     let explanation: String
     let accountBalance: Money?
+    let accountBalanceStatus: String
     let reserve: Money
     let goalReserve: Money
     let averageDailySpend: Money?
@@ -2013,6 +2046,10 @@ private struct AvailableBalanceCard: View {
                         .foregroundStyle(AppPalette.heroInk)
                 }
                 .accessibilityElement(children: .combine)
+                Text(accountBalanceStatus)
+                    .font(.caption2)
+                    .foregroundStyle(AppPalette.heroMuted)
+                    .fixedSize(horizontal: false, vertical: true)
             }
 
             HStack(alignment: .top, spacing: 8) {
@@ -2044,6 +2081,10 @@ private struct AvailableBalanceCard: View {
                     Rectangle().fill(AppPalette.heroLine).frame(height: 1)
                     if let accountBalance {
                         valueRow("На счетах", value: accountBalance.formatted)
+                        Text("Последнее подтверждение: \(accountBalanceStatus). Это сохранённый баланс, не онлайн-остаток банка.")
+                            .font(.footnote)
+                            .foregroundStyle(AppPalette.heroMuted)
+                            .fixedSize(horizontal: false, vertical: true)
                     } else {
                         valueRow("На счетах", value: "Не задан")
                     }
@@ -2802,11 +2843,16 @@ private struct EditGoalView: View {
 }
 
 private func balanceFreshnessLabel(for updatedAt: Date) -> String {
-    guard updatedAt <= .now else { return "Проверьте дату баланса" }
+    guard updatedAt <= .now else { return "Проверьте дату подтверждения баланса" }
     guard FinanceDataFreshness.isFresh(updatedAt, asOf: .now) else {
-        return "Устарел · проверен \(updatedAt.formatted(date: .abbreviated, time: .omitted))"
+        return "Устарел · подтверждён \(updatedAt.formatted(date: .abbreviated, time: .omitted))"
     }
-    return "Проверен \(updatedAt.formatted(date: .abbreviated, time: .shortened))"
+    return "Подтверждён \(updatedAt.formatted(date: .abbreviated, time: .shortened))"
+}
+
+private func balanceFreshnessLabel(for updatedAt: Date?) -> String {
+    guard let updatedAt else { return "Баланс не подтверждён" }
+    return balanceFreshnessLabel(for: updatedAt)
 }
 
 private struct AddAccountView: View {

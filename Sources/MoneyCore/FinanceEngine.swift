@@ -43,6 +43,9 @@ public struct FinanceEngine: Sendable {
             return FinancialHorizon(days: dayCount, points: [],
                 confidence: .uncertain("Баланс устарел или не подтверждён. Обнови данные для надёжного прогноза."))
         }
+        if let issue = snapshot.balanceReconciliationIssue {
+            return FinancialHorizon(days: dayCount, points: [], confidence: .uncertain(issue))
+        }
         guard snapshot.hasReliableSpendForecast else {
             return FinancialHorizon(days: dayCount, points: [],
                 confidence: .uncertain("Обычные расходы оценены не полностью: недостаточно истории операций."))
@@ -101,7 +104,8 @@ public struct FinanceEngine: Sendable {
         guard snapshot.hasValidPlanData, snapshot.hasReliableSpendForecast, snapshot.nextIncomeConfirmed,
               let limit = snapshot.nextIncomeDate, limit > now,
               FinancePlanningPolicy.supportsForecast(from: now, to: limit),
-              FinanceDataFreshness.isFresh(snapshot.dataUpdatedAt, asOf: now) else { return .zero }
+              FinanceDataFreshness.isFresh(snapshot.dataUpdatedAt, asOf: now),
+              snapshot.balanceReconciliationIssue == nil else { return .zero }
         let reserved = occurrences(snapshot.scheduledItems, settlements: snapshot.scheduledSettlements,
                                    from: now, through: limit)
             .filter { $0.item.isConfirmed && $0.date <= limit }
@@ -129,9 +133,17 @@ public struct FinanceEngine: Sendable {
         guard snapshot.nextIncomeConfirmed else {
             return .insufficientData("Подтверди сумму и дату следующего поступления: без этого безопасный горизонт расходов неизвестен.")
         }
-        guard FinanceDataFreshness.isFresh(snapshot.dataUpdatedAt, asOf: now) else {
-            return .insufficientData("Обнови баланс: данные отсутствуют, устарели или имеют неверную дату.")
+        guard let balanceUpdatedAt = snapshot.dataUpdatedAt else {
+            return .insufficientData("Дата подтверждения баланса неизвестна. Подтверди текущий остаток перед расчётом дневного лимита.")
         }
+        guard balanceUpdatedAt <= now else {
+            return .insufficientData("Дата подтверждения баланса позже текущего времени. Проверь дату и время на iPhone и подтверди остаток снова.")
+        }
+        guard FinanceDataFreshness.isFresh(balanceUpdatedAt, asOf: now) else {
+            let date = balanceUpdatedAt.formatted(date: .abbreviated, time: .shortened)
+            return .insufficientData("Последнее подтверждение баланса: \(date), старше 72 часов. Обнови остаток перед расчётом дневного лимита.")
+        }
+        if let issue = snapshot.balanceReconciliationIssue { return .insufficientData(issue) }
         guard snapshot.hasReliableSpendForecast else {
             return .insufficientData("Недостаточно истории операций, чтобы оценить обычные расходы и дневной лимит.")
         }
@@ -191,9 +203,17 @@ public struct FinanceEngine: Sendable {
         guard effectivePurchaseDate < nextIncome else {
             return .insufficientData("Покупка запланирована на дату следующего поступления или позже. Проверь её после фактического зачисления денег.")
         }
-        guard FinanceDataFreshness.isFresh(snapshot.dataUpdatedAt, asOf: now) else {
-            return .insufficientData("Обнови баланс: данные отсутствуют, устарели или имеют неверную дату.")
+        guard let balanceUpdatedAt = snapshot.dataUpdatedAt else {
+            return .insufficientData("Дата подтверждения баланса неизвестна. Подтверди текущий остаток в настройках счёта.")
         }
+        guard balanceUpdatedAt <= now else {
+            return .insufficientData("Дата подтверждения баланса позже текущего времени. Проверь дату и время на iPhone и подтверди остаток снова.")
+        }
+        guard FinanceDataFreshness.isFresh(balanceUpdatedAt, asOf: now) else {
+            let date = balanceUpdatedAt.formatted(date: .abbreviated, time: .shortened)
+            return .insufficientData("Последнее подтверждение баланса: \(date), старше 72 часов. Обнови остаток перед проверкой покупки.")
+        }
+        if let issue = snapshot.balanceReconciliationIssue { return .insufficientData(issue) }
         guard snapshot.hasReliableSpendForecast else {
             return .insufficientData("Недостаточно истории операций, чтобы оценить обычные траты.")
         }

@@ -2,10 +2,10 @@
 
 **Snapshot:** 2026-10-30, after UI/Orbit integration and Overview scroll-clearance fix.
 
-**Continuation:** branch `codex/moneywise-native-ui`, checkpoint `97d28c5`. The worktree is currently being updated with the P0-01 balance-age label and simulator evidence. The other worktrees were inspected and remain untouched; see the latest continuation handoff in the active Codex chat for their exact dirty states.
+**Continuation:** branch `codex/moneywise-native-ui`, base `debf50a`. P0-01 now carries the balance confirmation into the Overview and detects posted included-account operations dated after that confirmation. The other worktrees remain untouched.
 
-- P0-01 change: account rows show the timestamp of the last explicit balance check; stale and future timestamps have a warning label. `xcodebuild build` for generic iOS Simulator completed successfully after the change.
-- Existing account/transaction persistence flow passed 1/1 with the new freshness label before a later scroll-inset refinement. Subsequent Simulator UI runs stalled or failed due large Dynamic Type plus accumulated test accounts in shared simulators; no simulator data was cleared. Stale/future native row rendering and post-inset scrolling remain unverified.
+- P0-01 change: Overview and account rows display the last balance confirmation; the Overview states the saved balance is not live bank data. A posted included-account operation dated after the account snapshot adds a reconciliation warning and disables free-cash, daily-limit, horizon confidence and purchase-safe advice until the user reconfirms the balance. Detection is by operation date because the store has no entry timestamp; backdated operations entered after confirmation remain a known gap.
+- Direct MoneyCore verification passed for fail-closed reconciliation behavior and decoding older snapshots. The earlier Simulator account/persistence flow verified the freshness label before this Overview extension; current card wording and stale/future row renders remain unverified. No simulator data was cleared.
 
 ## Git
 
@@ -17,7 +17,7 @@
 ## Confirmed from this checkout
 
 - Main UI source contains accessible Overview entry points, account/plan screens, purchase checking, local settings, CSV preview, and SwiftData save paths.
-- The current uncommitted `MoneyWiseApp.swift` change concerns the Face ID setup warning and clears stale warning state after successful capability checking. The corresponding UI test asserts lock-screen coverage; a prior focused Simulator run passed.
+- The current P0-01 extension threads a detected account/balance date conflict into `FinanceSnapshot`; MoneyCore suppresses positive forecast/purchase advice until balance reconciliation.
 - Historical project checkpoint reports 380 MoneyCore checks and selected Simulator flows, including account/purchase and CSV persistence. These are historical evidence, not a run against this present dirty state.
 - Xcode 27.1 and iOS 27 Simulator are installed, but `xcode-select` points to Command Line Tools. Setting `DEVELOPER_DIR=/Applications/Xcode.app/Contents/Developer` exposes `xcodebuild` and `simctl`; the current Debug Simulator build succeeded in `/tmp/MoneyWiseDerivedData`.
 

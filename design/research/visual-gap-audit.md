@@ -262,3 +262,14 @@ All archived A/B/C screenshots use the same sample amount and dates. They are va
 - **G2 / After:** `design/research/evidence/2026-10-30/ios-overview-recent-operations-above-tabbar-iphone17.png` is a simulator capture from the passing existing account/transaction flow. It shows the entire fifth recent-operation row above the floating tab bar and all five rows reachable.
 - **G4 / Regression:** `testAccountAndTransactionPersistAfterRelaunch` passes (1/1) on iPhone 17 Simulator, including account/operation persistence and the scroll-clearance assertion. The focused Horizon empty-state/range test also passes (1/1) on iPhone 18 Pro Simulator, including “Нет баланса” and “Нет оценки”. Both are Simulator results, not physical-device evidence.
 - **Limits:** verification remains simulator-only; physical-device interaction and accessibility have not been performed.
+
+## Overview balance confirmation and reconciliation status — 2026-10-30
+
+- **Concrete gap:** the Overview's “На счетах” total omitted its confirmation time, while its displayed total is a saved manual balance rather than an online bank reading. A posted operation dated after the saved snapshot could make a fresh-looking balance misleading.
+- **G0:** source review found existing account `updatedAt`, transaction `date/status/sourceAccountID`, and the Overview's Living Card. No before screenshot of this exact populated state was captured in this continuation.
+- **G1:** retain the approved D1/A “Тихий горизонт” card and clarify evidence inline; no new card or direction.
+- **Change:** show the confirmation status beside the account amount and, in expanded details, clarify the value is saved rather than live. When a posted operation on an included account is dated after its snapshot, show the date conflict and require the user to reconcile/reconfirm. MoneyCore suppresses the free-cash and daily safe limit, makes the Horizon uncertain, and blocks safe purchase advice. No balance is inferred from partial history.
+- **G2:** previous account freshness screenshot is `design/research/evidence/2026-10-30/ios-account-balance-freshness-iphone18pro.png`; it predates the Overview confirmation detail/reconciliation warning. No after screenshot for the new conflict branch yet.
+- **G3:** NOT TESTED independently.
+- **G4:** focused standalone MoneyCore compile/run passed for purchase, daily-limit, available-cash, horizon suppression and legacy `FinanceSnapshot` decoding. Current full iOS app build is pending; no UI test was added or run.
+- **Limits:** comparison uses transaction date because stored transactions have no entry timestamp. A backdated transaction entered after the balance may not trigger it. UI branch visual rendering and physical-device behavior remain unverified.
