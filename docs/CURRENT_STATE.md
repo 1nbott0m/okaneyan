@@ -1,10 +1,10 @@
 # MoneyWise current state
 
-**Snapshot:** 2026-10-30, after UI/Orbit integration; commit hash will be filled after delivery.
+**Snapshot:** 2026-10-30, after UI/Orbit integration and Overview scroll-clearance fix.
 
 ## Git
 
-- Main checkout `/Users/yan/Documents/ChatGPT/ян грамотные траты`: branch `codex/moneywise-native-ui`, starting checkpoint `ad0696f89fc68e5e5e8049924094825ecf73117b`; currently contains the UI/Orbit integration changes described below, not yet committed.
+- Main checkout `/Users/yan/Documents/ChatGPT/ян грамотные траты`: branch `codex/moneywise-native-ui`, integration commit `89c630ecf4e17c1dd48a49efb2c291cf165bf95f` plus the current scroll-clearance follow-up awaiting commit.
 - UI worktree `/Users/yan/.codex/worktrees/moneywise-native-ui/ян грамотные траты`: branch `codex/moneywise-native-ui-work`, HEAD `46be9681879f7d69120193ad6652022e9d53521f`; six tracked diffs and 30 untracked status entries.
 - Orbit worktree `/Users/yan/.codex/worktrees/okaneyan-orbit-o/ян грамотные траты`: branch `codex/okaneyan-orbit-o`, HEAD `72d8e89ca6e8b642a4a473c3d80e38e1a56b2061`; clean.
 - The two remaining worktrees were compared against the checkpoint. The UI worktree remains dirty with its research and uncommitted materials; Orbit worktree remains clean. No source-worktree changes were overwritten, reset, merged, or discarded. Only the specific UI fixes and Orbit component/assets were copied into the main checkout.
@@ -28,8 +28,8 @@
 - Xcode emits non-blocking UserNotifications async/Sendable warnings and OS build-version logging warnings. These were not changed because they are unrelated to the user flow.
 - UI integration: Horizon, Reserves, Gravity, Purchase, accounts, operations, and planning remain native routes backed by existing MoneyCore/SwiftData. Missing account/spend estimates no longer display as 0 ₽; privacy hiding now covers relevant VoiceOver labels; reserve validation is reachable while the save guard still prevents invalid mutation.
 - Orbit integration: app target uses the supplied readiness-aware `OkaneyanLaunchIntro`; root readiness drives dismissal, the root stays mounted behind it, and there is no artificial delay. Master SVG, preview raster, and motion spec are in `design/brand/okaneyan-orbit-o/Design/`.
-- Fresh verification: integrated Debug app target builds for iOS Simulator; launch was captured on a temporary iPhone 17e Simulator. Existing account/transaction persistence, goals/budgets/debts persistence, and CSV import/deduplication flows passed focused Simulator runs (CSV with its fixture installed in the temporary simulator). The existing Horizon test passed before adding assertions for the empty-balance/estimate copy; its rerun stalled in Xcode's test runner and produced no valid result. A combined CSV run without its fixture failed at fixture lookup. The combined P0 flow was not repeated.
-- The two new assertions in the existing Horizon UI test remain unverified. Integrated animation-frame fidelity, physical iPhone, VoiceOver, Reduce Motion interaction, Dynamic Type, and independent design critique remain unverified.
+- Fresh verification: integrated Debug app target builds for iOS Simulator; launch was captured on a temporary iPhone 17e Simulator. Existing account/transaction persistence and the new scroll-clearance assertion passed on iPhone 17 Simulator (1/1); the last of five recent-operation rows is fully visible above the floating tab bar in `design/research/evidence/2026-10-30/ios-overview-recent-operations-above-tabbar-iphone17.png`. Goal/budget/debt persistence and CSV import/deduplication flows passed focused Simulator runs (CSV with its fixture installed in a temporary simulator). Horizon empty-data/range assertions (“Нет баланса”, “Нет оценки”) passed on iPhone 18 Pro Simulator (1/1). One earlier UI-runner invocation stalled before producing a result; subsequent focused runs passed. A combined CSV run without its fixture failed at fixture lookup. The combined P0 flow was not repeated.
+- Integrated animation-frame fidelity, physical iPhone, VoiceOver, Reduce Motion interaction, Dynamic Type, and independent design critique remain unverified.
 - Remaining product limitations: automatic bank sync is externally blocked; data is local/manual/CSV-based. Simulator launch is not physical-iPhone acceptance, and design requirements are not all complete.
 - GitHub delivery: SSH host-key verification fails; HTTPS push is available for `codex/moneywise-native-ui`. Next: inspect final diff/status, commit only this checkout's intended changes, and push that branch. Do not merge `main`.
 

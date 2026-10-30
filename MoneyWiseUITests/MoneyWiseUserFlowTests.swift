@@ -62,6 +62,18 @@ final class MoneyWiseUserFlowTests: XCTestCase {
         refreshedAccountsLink.tap()
         XCTAssertTrue(app.staticTexts[accountName].waitForExistence(timeout: 10), "Счёт должен пережить перезапуск")
         app.navigationBars.buttons.firstMatch.tap()
+        let recentTransaction = app.staticTexts[merchant]
+        let scrollStart = app.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.82))
+        let scrollEnd = app.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.35))
+        for _ in 0..<8 where !recentTransaction.isHittable {
+            scrollStart.press(forDuration: 0.1, thenDragTo: scrollEnd)
+        }
+        XCTAssertTrue(recentTransaction.isHittable,
+                      "Последнюю операцию можно полностью прокрутить выше плавающей нижней панели")
+        let scrollClearanceEvidence = XCTAttachment(screenshot: XCUIScreen.main.screenshot())
+        scrollClearanceEvidence.name = "Overview recent operation clear of floating tab bar"
+        scrollClearanceEvidence.lifetime = .keepAlways
+        add(scrollClearanceEvidence)
         XCTAssertTrue(app.staticTexts[merchant].waitForExistence(timeout: 10), "Операция должна пережить перезапуск")
     }
 

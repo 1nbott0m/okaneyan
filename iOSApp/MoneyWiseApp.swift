@@ -1007,6 +1007,9 @@ private struct RootView: View {
                 }.padding()
             }
             .background(AppPalette.canvas)
+            .safeAreaInset(edge: .bottom, spacing: 0) {
+                Color.clear.frame(height: 96)
+            }
             .navigationTitle("Обзор")
             .toolbar {
                 ToolbarItemGroup(placement: .topBarTrailing) {
