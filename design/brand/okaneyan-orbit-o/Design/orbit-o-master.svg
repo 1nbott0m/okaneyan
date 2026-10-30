@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-labelledby="title desc">
+  <title id="title">okaneyan. Orbit O — locked motion master</title>
+  <desc id="desc">A satin metal O, a fine open orbit and a separate rose satellite with one moving highlight.</desc>
+  <defs>
+    <linearGradient id="metal" x1="0" y1="0" x2="1" y2="1">
+      <stop stop-color="#d1cfd3"/><stop offset=".48" stop-color="#77747b"/><stop offset="1" stop-color="#aaa7ad"/>
+    </linearGradient>
+  </defs>
+  <path d="M380 132 A176 176 0 1 1 210 86" fill="none" stroke="#77757b" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>
+  <circle cx="256" cy="256" r="65" fill="none" stroke="url(#metal)" stroke-width="35"/>
+  <circle cx="380" cy="132" r="17" fill="#d9a4b4"/>
+</svg>

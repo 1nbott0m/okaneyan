@@ -371,6 +371,12 @@ extension MoneyWiseUserFlowTests {
         XCTAssertTrue(app.navigationBars["Финансовый горизонт"].waitForExistence(timeout: 10))
         XCTAssertTrue(app.staticTexts["Точного графика пока нет"].waitForExistence(timeout: 5),
                       "Без свежего баланса и достаточной истории нельзя показывать точечный прогноз")
+        let noBalanceMetric = app.staticTexts["Нет баланса"]
+        for _ in 0..<8 where !noBalanceMetric.isHittable { app.swipeUp() }
+        XCTAssertTrue(noBalanceMetric.isHittable,
+                      "Отсутствующий баланс нельзя показывать как реальные 0 ₽")
+        XCTAssertTrue(app.staticTexts["Нет оценки"].exists,
+                      "Неизвестные расходы не должны выглядеть как 0 ₽ в сводке")
 
         let sevenDayRange = app.buttons["7 дн."]
         XCTAssertTrue(sevenDayRange.waitForExistence(timeout: 5))

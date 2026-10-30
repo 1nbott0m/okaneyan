@@ -242,7 +242,9 @@ struct FinancialHorizonView: View {
 
     private var projectionSummary: some View {
         VStack(spacing: 0) {
-            horizonMetric("Сейчас на счетах", value: snapshot.currentBalance.formatted, symbol: "building.columns")
+            horizonMetric("Сейчас на счетах",
+                          value: snapshot.bankBalances.isEmpty ? "Нет баланса" : snapshot.currentBalance.formatted,
+                          symbol: "building.columns", isSensitive: !snapshot.bankBalances.isEmpty)
             Divider().overlay(AppPalette.line).padding(.leading, 42)
             horizonMetric("Минимальный резерв", value: snapshot.protectedReserve.formatted, symbol: "lock.shield")
             Divider().overlay(AppPalette.line).padding(.leading, 42)
@@ -250,7 +252,9 @@ struct FinancialHorizonView: View {
             Divider().overlay(AppPalette.line).padding(.leading, 42)
             horizonMetric("Резерв целей", value: protectedTotals.goals.formatted, symbol: "scope")
             Divider().overlay(AppPalette.line).padding(.leading, 42)
-            horizonMetric("Обычные расходы в день", value: snapshot.hasReliableSpendForecast ? snapshot.forecastDailySpend.formatted : "Нет оценки", symbol: "arrow.down.right")
+            horizonMetric("Обычные расходы в день",
+                          value: snapshot.hasReliableSpendForecast ? snapshot.forecastDailySpend.formatted : "Нет оценки",
+                          symbol: "arrow.down.right", isSensitive: snapshot.hasReliableSpendForecast)
         }
         .padding(.horizontal, 16)
         .background(AppPalette.surface, in: RoundedRectangle(cornerRadius: 21, style: .continuous))
@@ -293,12 +297,16 @@ struct FinancialHorizonView: View {
         }
     }
 
-    private func horizonMetric(_ title: String, value: String, symbol: String) -> some View {
+    private func horizonMetric(_ title: String, value: String, symbol: String, isSensitive: Bool = true) -> some View {
         HStack(spacing: 12) {
             Image(systemName: symbol).foregroundStyle(AppPalette.softAccent).frame(width: 24)
             Text(title).font(.subheadline).foregroundStyle(.secondary)
             Spacer(minLength: 8)
-            FinanceSensitiveAmount(value: value).font(AppTypography.amount(15, weight: .semibold))
+            if isSensitive {
+                FinanceSensitiveAmount(value: value).font(AppTypography.amount(15, weight: .semibold))
+            } else {
+                Text(value).font(AppTypography.ui(15, weight: .medium)).foregroundStyle(.secondary)
+            }
         }
         .padding(.vertical, 13)
     }
@@ -394,6 +402,7 @@ private enum ProtectedReserveTarget: String, CaseIterable, Identifiable {
 struct ProtectedReservesView: View {
     @Environment(\.modelContext) private var context
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @AppStorage("moneywise.hideAmounts") private var hideAmounts = false
     @Query(sort: \StoredProtectedReserve.createdAt) private var reserves: [StoredProtectedReserve]
     @Query(sort: \StoredGoal.title) private var goals: [StoredGoal]
     @Query(sort: \StoredPlanItem.dueDate) private var planItems: [StoredPlanItem]
@@ -409,6 +418,11 @@ struct ProtectedReservesView: View {
     private var namedTotal: Money { protectedTotals.named }
     private var protectedTotal: Money { minimumReserve + protectedTotals.named + protectedTotals.goals }
     private var shortfall: Money { max(.zero, protectedTotal - balance) }
+    private var shortfallWarning: String {
+        hideAmounts
+            ? "Защищённые суммы превышают текущий баланс. Проверь суммы или обнови остатки."
+            : "Защищённые суммы превышают текущий баланс на \(shortfall.formatted). Проверь суммы или обнови остатки."
+    }
 
     var body: some View {
         ScrollView {
@@ -427,7 +441,7 @@ struct ProtectedReservesView: View {
                 }
                 balanceCard
                 if shortfall > .zero {
-                    Label("Защищённые суммы превышают текущий баланс на \(shortfall.formatted). Проверь суммы или обнови остатки.", systemImage: "exclamationmark.triangle.fill")
+                    Label(shortfallWarning, systemImage: "exclamationmark.triangle.fill")
                         .font(.footnote.weight(.medium)).foregroundStyle(.orange)
                         .padding(14).frame(maxWidth: .infinity, alignment: .leading)
                         .background(Color.orange.opacity(0.10), in: RoundedRectangle(cornerRadius: 16, style: .continuous))
@@ -744,7 +758,6 @@ private struct ProtectedReserveEditor: View {
                         onSave(name.trimmingCharacters(in: .whitespacesAndNewlines), amount,
                             goalID, planID, planID == nil ? nil : occurrenceDate)
                     }
-                    .disabled(parsedAmount == nil || name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
                 }
             }
         }
@@ -786,6 +799,7 @@ struct FinancialGravityNode: Identifiable {
 struct FinancialGravityView: View {
     private enum Mode: String, CaseIterable { case composition = "Состав", list = "Подробности" }
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @AppStorage("moneywise.hideAmounts") private var hideAmounts = false
     let balance: Money
     let freeCash: Money?
     let freeCashExplanation: String
@@ -906,7 +920,7 @@ struct FinancialGravityView: View {
                     .contentShape(Rectangle())
                 }
                 .buttonStyle(.plain)
-                .accessibilityLabel("\(node.title), \(node.amount.formatted)")
+                .accessibilityLabel(nodeAccessibilityLabel(for: node))
                 .accessibilityHint("Открыть сведения о категории")
                 Divider().overlay(AppPalette.line)
             }
@@ -924,6 +938,10 @@ struct FinancialGravityView: View {
         guard maximum > 0 else { return 0 }
         let amount = NSDecimalNumber(decimal: node.amount.decimalRubles).doubleValue
         return max(0.035, min(1, CGFloat(sqrt(amount / maximum))))
+    }
+
+    private func nodeAccessibilityLabel(for node: FinancialGravityNode) -> String {
+        hideAmounts ? "\(node.title), сумма скрыта" : "\(node.title), \(node.amount.formatted)"
     }
 
     private var listView: some View {
@@ -951,7 +969,7 @@ struct FinancialGravityView: View {
                     gravityRow(title: node.title, amount: node.amount, kind: node.kind)
                 }
                 .buttonStyle(.plain)
-                .accessibilityLabel("\(node.title), \(node.amount.formatted)")
+                .accessibilityLabel(nodeAccessibilityLabel(for: node))
                 .accessibilityHint("Открыть сведения о категории")
             }
         }
@@ -984,6 +1002,7 @@ private struct FinanceSensitiveAmount: View {
 
     var body: some View {
         Text(hideAmounts ? "••••••" : value).monospacedDigit()
+            .accessibilityLabel(hideAmounts ? "Сумма скрыта" : value)
     }
 }
 

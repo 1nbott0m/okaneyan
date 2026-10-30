@@ -14,14 +14,14 @@ This file records user decisions recovered from the three supplied chat handoffs
 | Purchase model | Deterministic MoneyCore; scenario is not a transaction until explicit save/confirmation | Product contract and current architecture |
 | External AI | Deferred; local AI may be revisited later | Explicit user change |
 | Brand | `okaneyan.` lowercase with period; dark Okaneyan/Editorial base | User-provided identity and design decisions |
-| Orbit motion | Latest direction is restrained, with completion tied to actual app readiness and Reduce Motion support | Later user correction supersedes early high-VFX request; exact component approval remains unconfirmed |
+| Orbit motion | Integrate the supplied Orbit O component; dismiss only when the mounted app root reports ready; honor Reduce Motion | Current user explicitly requested the approved Orbit O materials be integrated into the unified iOS app |
 | Open source | User expressed intent, but no license selected | Open decision |
 
 ## Open questions that must not be silently decided
 
 - Whether a requested retail bank will approve direct on-device iOS API access and what native auth/token constraints apply.
 - Final purchase-verdict wording/scoring thresholds where “strict” guidance and nonjudgmental tone meet.
-- Whether every icon colorway is required for the standalone Orbit component; final Orbit geometry/readability approval.
+- Whether every icon colorway is required for app-icon release; launch animation geometry is now integrated from the requested Orbit O master.
 - Whether the static “Линия до события” concept is selected; viewing the concept is not approval.
 - A concrete open-source license.
 

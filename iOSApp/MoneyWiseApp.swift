@@ -45,10 +45,12 @@ struct MoneyWiseApp: App {
             .preferredColorScheme(preferredColorScheme)
             .overlay {
                 if startup.container != nil && isShowingIntro {
-                    OkaneyanCinematicIntro(isContentReady: isRootReady) {
-                        hasShownIntro = true
-                        hasFinishedIntro = true
-                        isShowingIntro = false
+                    OkaneyanLaunchIntro(isAppReady: isRootReady) {
+                        withAnimation(.easeOut(duration: 0.2)) {
+                            hasShownIntro = true
+                            hasFinishedIntro = true
+                            isShowingIntro = false
+                        }
                     }
                     .transition(.opacity)
                     .zIndex(1)
