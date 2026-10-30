@@ -2,6 +2,11 @@
 
 **Snapshot:** 2026-10-30, after UI/Orbit integration and Overview scroll-clearance fix.
 
+**Continuation:** branch `codex/moneywise-native-ui`, checkpoint `97d28c5`. The worktree is currently being updated with the P0-01 balance-age label and simulator evidence. The other worktrees were inspected and remain untouched; see the latest continuation handoff in the active Codex chat for their exact dirty states.
+
+- P0-01 change: account rows show the timestamp of the last explicit balance check; stale and future timestamps have a warning label. `xcodebuild build` for generic iOS Simulator completed successfully after the change.
+- Existing account/transaction persistence flow passed 1/1 with the new freshness label before a later scroll-inset refinement. Subsequent Simulator UI runs stalled or failed due large Dynamic Type plus accumulated test accounts in shared simulators; no simulator data was cleared. Stale/future native row rendering and post-inset scrolling remain unverified.
+
 ## Git
 
 - Main checkout `/Users/yan/Documents/ChatGPT/ян грамотные траты`: branch `codex/moneywise-native-ui`, integration commit `89c630ecf4e17c1dd48a49efb2c291cf165bf95f` plus the current scroll-clearance follow-up awaiting commit.

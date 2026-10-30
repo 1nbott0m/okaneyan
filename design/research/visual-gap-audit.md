@@ -1,5 +1,15 @@
 # Visual gap audit — MoneyWise existing preview and native
 
+## Account balance freshness label — 2026-10-30
+
+- **Concrete gap:** the native account list showed a balance with no age/status, so a manually entered value could look current even though purchase checks correctly fail closed after 72 hours. At the largest Dynamic Type size, long account labels also pushed the freshness detail under the floating tab bar. `StoredAccount.updatedAt`, `FinanceDataFreshness`, and the existing detail-screen timestamp already provide the source data.
+- **G0:** PARTIAL. Source evidence was reviewed. A pre-change capture of the account list was not available in this continuation; the overview capture is not a substitute.
+- **G1:** approved dark Editorial/Okaneyan direction remains in force (`docs/DESIGN_DECISIONS.md`); this is a small information label, not a direction change.
+- **G2:** `design/research/evidence/2026-10-30/ios-account-balance-freshness-iphone18pro.png` captures the new timestamp at the largest Dynamic Type size; it also shows the long row reaching behind the floating tab bar. A 96-point list inset was added afterward, but no post-inset screenshot was captured.
+- **G3:** NOT TESTED; no independent design critique was run.
+- **G4:** the existing account/transaction persistence flow passed 1/1 and asserted the freshness label existed before the inset follow-up. The post-inset rerun on the accumulated accessibility-size Simulator did not complete cleanly; no broad suite was run.
+- **Untested:** stale/future date rendering in the account list has not been exercised through native UI. Core freshness policy and fail-closed purchase behavior already exist in MoneyCore.
+
 **Baseline date:** source screenshots in `outputs/` dated 2026-10-29; the original D1 mobile Overview and Gravity orbit were reviewed before the Gravity correction, alongside eight triggered external motion demos. The orbit image below is retained as historical before evidence.
 
 ## Evidence files and surfaces

@@ -1042,6 +1042,10 @@ private struct AccountsOverviewView: View {
                             VStack(alignment: .leading, spacing: 4) {
                                 Text(account.name)
                                 Text(account.bank.rawValue).font(.caption).foregroundStyle(.secondary)
+                                Text(balanceFreshnessLabel(for: account.updatedAt))
+                                    .font(.caption2)
+                                    .foregroundStyle(FinanceDataFreshness.isFresh(account.updatedAt, asOf: .now)
+                                        ? Color.secondary : Color.orange)
                             }
                             Spacer()
                             SensitiveAmount(value: Money(kopecks: account.balanceKopecks).formatted)
@@ -2795,6 +2799,14 @@ private struct EditGoalView: View {
             saveError = error.localizedDescription
         }
     }
+}
+
+private func balanceFreshnessLabel(for updatedAt: Date) -> String {
+    guard updatedAt <= .now else { return "Проверьте дату баланса" }
+    guard FinanceDataFreshness.isFresh(updatedAt, asOf: .now) else {
+        return "Устарел · проверен \(updatedAt.formatted(date: .abbreviated, time: .omitted))"
+    }
+    return "Проверен \(updatedAt.formatted(date: .abbreviated, time: .shortened))"
 }
 
 private struct AddAccountView: View {
