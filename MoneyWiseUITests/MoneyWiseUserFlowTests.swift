@@ -671,6 +671,66 @@ extension MoneyWiseUserFlowTests {
     }
 
     @MainActor
+    func testGravityCompositionAndListUseSameValues() throws {
+        executionTimeAllowance = 120
+        continueAfterFailure = false
+        let app = XCUIApplication()
+        app.launchArguments.append("--moneywise-p0-ui-fixture")
+        app.launchEnvironment["MONEYWISE_P0_UI_FIXTURE"] = "1"
+        app.launch()
+        XCTAssertTrue(app.buttons["Структура"].waitForExistence(timeout: 15))
+        app.buttons["Структура"].tap()
+        XCTAssertTrue(app.navigationBars["Структура денег"].waitForExistence(timeout: 5))
+        let future = app.buttons["gravity.map.income"]
+        for _ in 0..<5 where !future.isHittable { app.swipeUp() }
+        XCTAssertTrue(future.waitForExistence(timeout: 5))
+        let mapLabel = future.label
+        let scale = app.staticTexts["gravity.scaleExplanation"]
+        XCTAssertTrue(scale.exists)
+        for _ in 0..<5 where !scale.isHittable || scale.frame.maxY > app.tabBars.firstMatch.frame.minY { app.swipeUp() }
+        XCTAssertTrue(scale.isHittable)
+        XCTAssertLessThanOrEqual(scale.frame.maxY, app.tabBars.firstMatch.frame.minY,
+                                 "Подпись схемы можно полностью прокрутить выше плавающей панели")
+        let composition = XCTAttachment(screenshot: XCUIScreen.main.screenshot())
+        composition.name = "Financial Gravity — spatial relationships"
+        composition.lifetime = .keepAlways
+        add(composition)
+        future.tap()
+        let amount = app.staticTexts["gravity.detailAmount"]
+        let explanation = app.staticTexts["gravity.nodeExplanation"]
+        XCTAssertTrue(explanation.waitForExistence(timeout: 5))
+        XCTAssertTrue(explanation.label.contains("ещё не входят в текущий баланс"))
+        XCTAssertEqual(amount.label.filter { $0.isNumber }, "500000")
+        let detail = XCTAttachment(screenshot: XCUIScreen.main.screenshot())
+        detail.name = "Financial Gravity — future income correctly excluded from cash"
+        detail.lifetime = .keepAlways
+        add(detail)
+        app.buttons["Готово"].tap()
+        let listMode = app.buttons["Подробности"]
+        for _ in 0..<5 where !listMode.isHittable { app.swipeDown() }
+        listMode.tap()
+        let listIncome = app.buttons["gravity.list.income"]
+        for _ in 0..<5 where !listIncome.isHittable { app.swipeUp() }
+        XCTAssertTrue(listIncome.waitForExistence(timeout: 5))
+        XCTAssertEqual(listIncome.label, mapLabel, "Схема и список описывают одну и ту же сумму")
+        listIncome.tap()
+        XCTAssertTrue(amount.waitForExistence(timeout: 5))
+        XCTAssertEqual(amount.label.filter { $0.isNumber }, "500000")
+        app.buttons["Готово"].tap()
+        app.navigationBars.buttons.firstMatch.tap()
+        app.buttons["Скрыть суммы"].tap()
+        app.buttons["Структура"].tap()
+        for _ in 0..<5 where !future.isHittable { app.swipeUp() }
+        XCTAssertTrue(future.label.hasSuffix("сумма скрыта"))
+        future.tap()
+        XCTAssertTrue(amount.waitForExistence(timeout: 5))
+        XCTAssertEqual(amount.label, "Сумма скрыта")
+        app.buttons["Готово"].tap()
+        app.navigationBars.buttons.firstMatch.tap()
+        app.buttons["Показать суммы"].tap()
+    }
+
+    @MainActor
     func testFinancialHorizonKeepsRangePickerUsableWithoutReliableHistory() throws {
         let app = XCUIApplication()
         app.launch()

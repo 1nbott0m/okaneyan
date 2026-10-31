@@ -1071,9 +1071,25 @@ struct FinancialGravityNode: Identifiable {
             case .reserve: "Именной резерв"
             case .goal: "Накопительная цель"
             case .obligation: "Подтверждённые платежи"
-            case .income: "Подтверждённое поступление"
+            case .income: "Будущие поступления"
             }
         }
+        var explanation: String {
+            switch self {
+            case .income:
+                "Эти будущие поступления ещё не входят в текущий баланс. Они влияют на прогноз в согласованные даты ближайших 30 дней."
+            case .obligation:
+                "Это подтверждённые плановые списания на ближайшие 30 дней. Они уменьшают прогноз в свои даты, а не означают уже проведённый расход."
+            case .minimum:
+                "Это общий защитный порог внутри текущего баланса. Он уменьшает свободную сумму по плану и не создаёт отдельный банковский счёт."
+            case .reserve:
+                "Это именные резервы внутри текущего баланса. Деньги остаются на счёте; связь с целями и платежами защищает от повторного вычитания."
+            case .goal:
+                "Это уже выделенные суммы для целей и связанных конвертов. Они учитываются в защите денег; цель и связанный резерв нельзя складывать повторно."
+            }
+        }
+        var isFuture: Bool { self == .income || self == .obligation }
+
         var symbol: String {
             switch self {
             case .minimum: "lock.shield.fill"
@@ -1094,6 +1110,7 @@ struct FinancialGravityNode: Identifiable {
 struct FinancialGravityView: View {
     private enum Mode: String, CaseIterable { case composition = "Состав", list = "Подробности" }
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     @AppStorage("moneywise.hideAmounts") private var hideAmounts = false
     let balance: Money
     let freeCash: Money?
@@ -1119,7 +1136,7 @@ struct FinancialGravityView: View {
                     }
                     Spacer()
                     VStack(alignment: .trailing, spacing: 4) {
-                        Text("Свободно сейчас").font(.caption).foregroundStyle(.secondary)
+                        Text("Свободно по плану").font(.caption).foregroundStyle(.secondary)
                         if let freeCash {
                             FinanceSensitiveAmount(value: freeCash.formatted).font(AppTypography.amount(20, weight: .semibold))
                         } else {
@@ -1127,112 +1144,174 @@ struct FinancialGravityView: View {
                         }
                     }
                 }
-                .padding(17)
-                .background(AppPalette.surface)
+                .padding(.vertical, 16)
+                .overlay(alignment: .top) { Rectangle().fill(AppPalette.line).frame(height: 1) }
+                .overlay(alignment: .bottom) { Rectangle().fill(AppPalette.line).frame(height: 1) }
                 if freeCash == nil {
                     Label(freeCashExplanation, systemImage: "info.circle")
                         .font(.footnote).foregroundStyle(.secondary)
                         .fixedSize(horizontal: false, vertical: true)
                         .accessibilityLabel("Свободная сумма не рассчитана. \(freeCashExplanation)")
                 }
+                Text("Категории могут пересекаться: резерв, цель и подтверждённый платёж не являются независимыми счетами и не складываются друг с другом.")
+                    .font(.footnote).foregroundStyle(.secondary)
                 Picker("Представление", selection: $mode) {
                     ForEach(Mode.allCases, id: \.self) { Text($0.rawValue).tag($0) }
                 }
                 .pickerStyle(.segmented)
                 Group {
                     switch mode {
-                    case .composition: compositionView
+                    case .composition:
+                        if dynamicTypeSize.isAccessibilitySize {
+                            Text("Крупный текст: структура показана списком.").font(.footnote).foregroundStyle(.secondary)
+                            listView
+                        } else { compositionView }
                     case .list: listView
                     }
                 }
                 .animation(reduceMotion ? nil : .spring(response: 0.48, dampingFraction: 0.86), value: mode)
-                Text("Категории могут пересекаться: резерв, цель и подтверждённый платёж не являются независимыми счетами и не складываются друг с другом.")
-                    .font(.footnote).foregroundStyle(.secondary)
             }
             .padding(20)
             .frame(maxWidth: 720, alignment: .leading)
             .frame(maxWidth: .infinity)
+        }
+        .safeAreaInset(edge: .bottom, spacing: 0) {
+            Color.clear.frame(height: 96).accessibilityHidden(true)
         }
         .background(AppPalette.canvas)
         .navigationTitle("Структура денег")
         .navigationBarTitleDisplayMode(.inline)
         .sheet(item: $selectedNode) { node in
             NavigationStack {
+                ScrollView {
                 VStack(alignment: .leading, spacing: 18) {
-                    Image(systemName: node.kind.symbol).font(.system(size: 24, weight: .semibold))
-                        .foregroundStyle(AppPalette.accent).frame(width: 54, height: 54)
-                        .background(AppPalette.softAccent.opacity(0.16), in: Circle())
+                    GravityMaterialObject(tint: tint(for: node.kind), diameter: 68)
+                        .overlay(Image(systemName: node.kind.symbol).font(.title3).foregroundStyle(.white)
+                            .shadow(color: .black, radius: 1)).accessibilityHidden(true)
                     Text(node.title).font(AppTypography.ui(25, weight: .semibold))
                     FinanceSensitiveAmount(value: node.amount.formatted)
                         .font(AppTypography.amount(32, weight: .semibold))
+                        .lineLimit(1).minimumScaleFactor(0.6)
+                        .accessibilityIdentifier("gravity.detailAmount")
                     Text(node.kind.label).font(AppTypography.detail(13, weight: .medium))
-                    Text("Эта сумма уже отражена в общем балансе. Она используется для планирования и не перемещается между банковскими счетами.")
+                    Text(node.kind.explanation)
                         .font(.subheadline).foregroundStyle(.secondary)
-                    Spacer()
+                        .accessibilityIdentifier("gravity.nodeExplanation")
                 }
                 .padding(24)
                 .frame(maxWidth: .infinity, alignment: .leading)
+                }
                 .background(AppPalette.canvas)
                 .toolbar { ToolbarItem(placement: .confirmationAction) { Button("Готово") { selectedNode = nil } } }
             }
-            .presentationDetents([.medium])
+            .presentationDetents([.medium, .large])
+            .presentationDragIndicator(.visible)
         }
     }
 
     private var compositionView: some View {
-        VStack(spacing: 0) {
-            HStack(alignment: .firstTextBaseline) {
-                Text("Доступно после плана").font(.caption).foregroundStyle(.secondary)
-                Spacer()
-                if let freeCash {
-                    FinanceSensitiveAmount(value: freeCash.formatted).font(AppTypography.amount(20, weight: .semibold))
-                } else {
-                    Text("—").font(AppTypography.amount(20, weight: .semibold))
-                }
-            }
-            .padding(.vertical, 14)
-            Divider().overlay(AppPalette.line)
-            ForEach(nodes) { node in
-                Button { selectedNode = node } label: {
-                    HStack(spacing: 12) {
-                        VStack(alignment: .leading, spacing: 5) {
-                            Text(node.title).font(.subheadline)
-                            GeometryReader { geometry in
-                                ZStack(alignment: .leading) {
-                                    Rectangle().fill(AppPalette.line)
-                                    Rectangle().fill(node.kind == .income ? AppPalette.muted : AppPalette.accent)
-                                        .frame(width: geometry.size.width * share(for: node))
-                                }
-                            }
-                            .frame(height: 2)
-                            .accessibilityHidden(true)
-                        }
-                        Spacer(minLength: 10)
-                        FinanceSensitiveAmount(value: node.amount.formatted)
-                            .font(AppTypography.amount(15, weight: .semibold)).monospacedDigit()
-                    }
-                    .padding(.vertical, 12)
-                    .contentShape(Rectangle())
-                }
-                .buttonStyle(.plain)
-                .accessibilityLabel(nodeAccessibilityLabel(for: node))
-                .accessibilityHint("Открыть сведения о категории")
-                Divider().overlay(AppPalette.line)
-            }
+        VStack(alignment: .leading, spacing: 14) {
             if nodes.isEmpty {
                 Text("Категории появятся, когда будут добавлены резервы, цели или подтверждённые планы.")
                     .font(.footnote).foregroundStyle(.secondary)
-                    .fixedSize(horizontal: false, vertical: true)
-                    .padding(.vertical, 16)
+            } else {
+                GeometryReader { geometry in
+                    let origin = CGPoint(x: geometry.size.width * 0.5, y: geometry.size.height * 0.44)
+                    ZStack {
+                        ForEach(nodes) { node in
+                            let location = position(for: node.kind, in: geometry.size)
+                            Path { path in
+                                path.move(to: origin)
+                                path.addLine(to: CGPoint(x: location.x, y: location.y - 16))
+                            }
+                            .stroke(AppPalette.muted.opacity(0.8), style: StrokeStyle(lineWidth: 1,
+                                dash: node.kind.isFuture ? [3, 5] : []))
+                            .accessibilityHidden(true)
+                        }
+                        VStack(spacing: 5) {
+                            Image(systemName: "building.columns").font(.title3)
+                            Text("БАЛАНС").font(AppTypography.detail(10, weight: .semibold)).tracking(1)
+                        }
+                        .foregroundStyle(AppPalette.heroMuted)
+                        .frame(width: 108, height: 76)
+                        .background(AppPalette.hero, in: Ellipse())
+                        .overlay(Ellipse().stroke(LinearGradient(colors: [AppPalette.metalHighlight.opacity(0.7),
+                            AppPalette.metalEdge.opacity(0.15), AppPalette.metalEdge], startPoint: .topLeading,
+                            endPoint: .bottomTrailing), lineWidth: 1))
+                        .position(origin)
+                        .accessibilityHidden(true)
+                        ForEach(nodes) { node in
+                            Button { selectedNode = node } label: {
+                                VStack(spacing: 6) {
+                                    GravityMaterialObject(tint: tint(for: node.kind), diameter: diameter(for: node))
+                                        .overlay {
+                                            if diameter(for: node) >= 24 {
+                                                Image(systemName: node.kind.symbol).font(.system(size: 14, weight: .medium))
+                                                    .foregroundStyle(.white).shadow(color: .black, radius: 1)
+                                            }
+                                        }
+                                        .frame(width: 80, height: 80)
+                                    Text(shortTitle(for: node.kind)).font(AppTypography.detail(12, weight: .medium))
+                                        .foregroundStyle(.primary).frame(height: 24)
+                                }
+                                .frame(width: 100, height: 112)
+                                .contentShape(Rectangle())
+                            }
+                            .buttonStyle(.plain)
+                            .accessibilityLabel(nodeAccessibilityLabel(for: node))
+                            .accessibilityIdentifier("gravity.map.\(node.id)")
+                            .accessibilityHint("Открыть точную сумму и её роль в плане")
+                            .position(position(for: node.kind, in: geometry.size))
+                        }
+                    }
+                }
+                .frame(height: 350)
+                HStack(spacing: 18) {
+                    Label { Text("Защита денег") } icon: { Rectangle().fill(AppPalette.softAccent).frame(width: 16, height: 1) }
+                    Label { Text("Будущие события") } icon: {
+                        Rectangle().stroke(.secondary, style: StrokeStyle(lineWidth: 1, dash: [3, 3])).frame(width: 16, height: 1)
+                    }
+                }
+                .font(.caption).foregroundStyle(.secondary)
+                Text("Площади объектов сравнивают суммы категорий, а не доли баланса. Нажми объект для точного значения.")
+                    .font(.caption).foregroundStyle(.secondary)
+                    .accessibilityIdentifier("gravity.scaleExplanation")
             }
         }
     }
 
-    private func share(for node: FinancialGravityNode) -> CGFloat {
-        let maximum = nodes.map { NSDecimalNumber(decimal: $0.amount.decimalRubles).doubleValue }.max() ?? 1
-        guard maximum > 0 else { return 0 }
-        let amount = NSDecimalNumber(decimal: node.amount.decimalRubles).doubleValue
-        return max(0.035, min(1, CGFloat(sqrt(amount / maximum))))
+    private func diameter(for node: FinancialGravityNode) -> CGFloat {
+        let maximum = max(1, nodes.map { Double($0.amount.kopecks) }.max() ?? 1)
+        return CGFloat(sqrt(max(0, Double(node.amount.kopecks)) / maximum)) * 76
+    }
+    private func position(for kind: FinancialGravityNode.Kind, in size: CGSize) -> CGPoint {
+        let unit: CGPoint
+        switch kind {
+        case .minimum: unit = CGPoint(x: 0.22, y: 0.18)
+        case .reserve: unit = CGPoint(x: 0.78, y: 0.18)
+        case .goal: unit = CGPoint(x: 0.16, y: 0.62)
+        case .obligation: unit = CGPoint(x: 0.84, y: 0.62)
+        case .income: unit = CGPoint(x: 0.5, y: 0.76)
+        }
+        return CGPoint(x: unit.x * size.width, y: unit.y * size.height)
+    }
+    private func shortTitle(for kind: FinancialGravityNode.Kind) -> String {
+        switch kind {
+        case .minimum: "Минимум"
+        case .reserve: "Резервы"
+        case .goal: "Цели"
+        case .obligation: "Платежи"
+        case .income: "Поступления"
+        }
+    }
+    private func tint(for kind: FinancialGravityNode.Kind) -> Color {
+        switch kind {
+        case .minimum: AppPalette.heroMuted
+        case .reserve: AppPalette.softAccent
+        case .goal: .white
+        case .obligation: AppPalette.accent
+        case .income: AppPalette.metalHighlight
+        }
     }
 
     private func nodeAccessibilityLabel(for node: FinancialGravityNode) -> String {
@@ -1242,7 +1321,7 @@ struct FinancialGravityView: View {
     private var listView: some View {
         VStack(spacing: 0) {
             if let freeCash {
-                gravityRow(title: "Свободно сейчас", amount: freeCash, kind: .reserve, isFree: true)
+                gravityRow(title: "Свободно по плану", amount: freeCash, kind: .reserve, isFree: true)
             } else {
                 HStack(spacing: 12) {
                     Image(systemName: "info.circle")
@@ -1265,6 +1344,7 @@ struct FinancialGravityView: View {
                 }
                 .buttonStyle(.plain)
                 .accessibilityLabel(nodeAccessibilityLabel(for: node))
+                .accessibilityIdentifier("gravity.list.\(node.id)")
                 .accessibilityHint("Открыть сведения о категории")
             }
         }
@@ -1289,6 +1369,38 @@ struct FinancialGravityView: View {
         .contentShape(Rectangle())
     }
 
+}
+
+/// Static procedural material: node area is data; shadows and etched arcs establish depth.
+private struct GravityMaterialObject: View {
+    let tint: Color
+    let diameter: CGFloat
+
+    var body: some View {
+        ZStack {
+            Ellipse().fill(Color.black.opacity(0.6))
+                .frame(width: diameter * 0.86, height: diameter * 0.18)
+                .blur(radius: diameter * 0.08).offset(y: diameter * 0.48 + 3)
+            Circle().fill(RadialGradient(colors: [.white.opacity(0.92), tint.opacity(0.85),
+                tint.opacity(0.38), .black], center: UnitPoint(x: 0.26, y: 0.18),
+                startRadius: 0, endRadius: diameter * 0.94))
+            Circle().stroke(AngularGradient(colors: [.white.opacity(0.7), .black.opacity(0.7),
+                tint.opacity(0.4), .white.opacity(0.5)], center: .center), lineWidth: 0.7)
+            Canvas { context, size in
+                for index in 0..<6 {
+                    var arc = Path()
+                    arc.addArc(center: CGPoint(x: size.width * 0.5, y: size.height * 0.5),
+                               radius: size.width * (0.32 + CGFloat(index) * 0.025),
+                               startAngle: .degrees(195), endAngle: .degrees(295), clockwise: false)
+                    context.stroke(arc, with: .color(.white.opacity(0.04)), lineWidth: 0.35)
+                }
+            }
+            Ellipse().stroke(.white.opacity(0.35), lineWidth: 0.5)
+                .frame(width: diameter * 0.30, height: diameter * 0.10)
+                .rotationEffect(.degrees(-32)).offset(x: -diameter * 0.17, y: -diameter * 0.28)
+        }
+        .frame(width: diameter, height: diameter)
+    }
 }
 
 private struct FinanceSensitiveAmount: View {

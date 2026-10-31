@@ -1,0 +1,12 @@
+{
+  "fixtureOnly": true,
+  "accountBalancesKopecks": [
+    1000000
+  ],
+  "transactionCount": 10,
+  "minimumReserveKopecks": 100000,
+  "namedReserveAmountsKopecks": [
+    200000
+  ],
+  "planCount": 0
+}
