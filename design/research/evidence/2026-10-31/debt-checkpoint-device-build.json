@@ -1,0 +1,16 @@
+{
+  "configuration": "Release",
+  "platform": "iphoneos",
+  "architecture": "arm64",
+  "build": "succeeded",
+  "signed": false,
+  "installableAsDelivered": false,
+  "physicalDeviceVerified": false,
+  "validSigningIdentities": 0,
+  "physicalDeviceAvailable": false,
+  "bundleID": "com.personal.moneywise",
+  "minimumOSVersion": "17.0",
+  "archive": "work/device-builds/okaneyan-unsigned-arm64.zip",
+  "archiveSHA256": "5107da5600b6715bbeaa1455f79b7c680031b2de66d86b960b777296f1c7731b",
+  "log": "/tmp/moneywise-debt-complete-device-release.log"
+}

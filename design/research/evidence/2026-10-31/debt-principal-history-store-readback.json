@@ -1,0 +1,152 @@
+{
+  "syntheticSimulatorOnly": true,
+  "accounts": [
+    {
+      "name": "P0 тестовый счёт",
+      "balanceKopecks": 1000000
+    }
+  ],
+  "transactions": {
+    "count": 10,
+    "sumKopecks": 100000
+  },
+  "debts": [
+    {
+      "creditor": "Возврат с историей",
+      "balanceKopecks": 600000,
+      "monthlyKopecks": 100000,
+      "history": [
+        {
+          "id": "75D4E394-0579-492C-A42A-6BBEC0E64741",
+          "recordedAt": 815142070.010805,
+          "kind": "created",
+          "effectiveDate": 815142070.009541,
+          "after": {
+            "balanceKopecks": 700000,
+            "nextPaymentDate": 817734061.78154,
+            "direction": "owedToMe",
+            "paymentKopecks": 100000,
+            "confirmedInForecast": false,
+            "creditor": "Возврат с историей"
+          }
+        },
+        {
+          "effectiveDate": 815142076.382482,
+          "note": "Получен основной долг",
+          "id": "CF6CC11C-48B9-4DAE-A5C8-F72E7504F383",
+          "after": {
+            "balanceKopecks": 600000,
+            "direction": "owedToMe",
+            "paymentKopecks": 100000,
+            "nextPaymentDate": 817734061.78154,
+            "creditor": "Возврат с историей",
+            "confirmedInForecast": false
+          },
+          "recordedAt": 815142082.708597,
+          "before": {
+            "balanceKopecks": 700000,
+            "direction": "owedToMe",
+            "paymentKopecks": 100000,
+            "nextPaymentDate": 817734061.78154,
+            "creditor": "Возврат с историей",
+            "confirmedInForecast": false
+          },
+          "kind": "repayment"
+        }
+      ]
+    },
+    {
+      "creditor": "Долг до истории",
+      "balanceKopecks": 0,
+      "monthlyKopecks": 60000,
+      "history": [
+        {
+          "id": "CCE94BC0-0164-4C53-97F6-C072E69E40DB",
+          "before": {
+            "direction": "owedByMe",
+            "nextPaymentDate": 817733589.156984,
+            "paymentKopecks": 50000,
+            "creditor": "Долг до истории",
+            "balanceKopecks": 300000,
+            "confirmedInForecast": true
+          },
+          "note": "Первая выплата",
+          "effectiveDate": 815142020.665895,
+          "kind": "repayment",
+          "recordedAt": 815142027.488817,
+          "after": {
+            "nextPaymentDate": 817733589.156984,
+            "direction": "owedByMe",
+            "creditor": "Долг до истории",
+            "balanceKopecks": 200000,
+            "confirmedInForecast": true,
+            "paymentKopecks": 50000
+          }
+        },
+        {
+          "recordedAt": 815142035.693706,
+          "effectiveDate": 815142035.692215,
+          "kind": "edited",
+          "before": {
+            "nextPaymentDate": 817733589.156984,
+            "direction": "owedByMe",
+            "creditor": "Долг до истории",
+            "balanceKopecks": 200000,
+            "confirmedInForecast": true,
+            "paymentKopecks": 50000
+          },
+          "after": {
+            "nextPaymentDate": 817733589.156984,
+            "direction": "owedByMe",
+            "creditor": "Долг до истории",
+            "balanceKopecks": 200000,
+            "confirmedInForecast": true,
+            "paymentKopecks": 60000
+          },
+          "id": "11FB1A28-9783-49E4-8CD1-E90D7C548306"
+        },
+        {
+          "id": "240D4B90-A4B1-452B-B0C6-DA940F2FD982",
+          "before": {
+            "nextPaymentDate": 817733589.156984,
+            "direction": "owedByMe",
+            "creditor": "Долг до истории",
+            "balanceKopecks": 200000,
+            "confirmedInForecast": true,
+            "paymentKopecks": 60000
+          },
+          "note": "Долг закрыт",
+          "effectiveDate": 815142041.716017,
+          "kind": "repayment",
+          "recordedAt": 815142048.292735,
+          "after": {
+            "paymentKopecks": 60000,
+            "direction": "owedByMe",
+            "creditor": "Долг до истории",
+            "balanceKopecks": 0,
+            "nextPaymentDate": 817733589.156984,
+            "confirmedInForecast": true
+          }
+        }
+      ]
+    }
+  ],
+  "plans": [
+    {
+      "title": "Возврат долга: Возврат с историей",
+      "kind": "debtCollection",
+      "amountKopecks": 100000,
+      "occurrencesRemaining": null,
+      "confirmed": 0
+    },
+    {
+      "title": "Погашение долга: Долг до истории",
+      "kind": "debtRepayment",
+      "amountKopecks": 60000,
+      "occurrencesRemaining": 0,
+      "confirmed": 1
+    }
+  ],
+  "legacyStoreBackup": "/tmp/MoneyWiseDebtPreMigrationStore",
+  "assertions": "passed"
+}

@@ -330,6 +330,8 @@ private func normalizedMerchantKey(_ merchant: String) -> String {
     var firstPaymentDate: Date
     var planItemID: UUID
     var directionRaw: String?
+    // Optional additive field: existing debt rows migrate without invented history.
+    var historyData: Data?
     init(creditor: String, balance: Money, payment: Money, firstPaymentDate: Date,
          planItemID: UUID, direction: DebtDirection = .owedByMe) {
         id = UUID(); self.creditor = creditor; balanceKopecks = balance.kopecks
@@ -339,6 +341,48 @@ private func normalizedMerchantKey(_ merchant: String) -> String {
     var direction: DebtDirection { directionRaw.flatMap(DebtDirection.init(rawValue:)) ?? .owedByMe }
     /// Last balance explicitly entered or confirmed by the user. It is never reduced by time alone.
     var currentBalance: Money { Money(kopecks: balanceKopecks) }
+}
+
+/// Immutable user-confirmed principal snapshots; not account transactions or interest calculations.
+private struct DebtChange: Codable, Identifiable {
+    struct Snapshot: Codable, Equatable {
+        let creditor: String
+        let direction: DebtDirection
+        let balanceKopecks: Int64
+        let paymentKopecks: Int64
+        let nextPaymentDate: Date
+        let confirmedInForecast: Bool
+
+        init(_ debt: StoredDebt, plan: StoredPlanItem?) {
+            creditor = debt.creditor; direction = debt.direction
+            balanceKopecks = debt.balanceKopecks; paymentKopecks = debt.paymentKopecks
+            nextPaymentDate = debt.firstPaymentDate
+            confirmedInForecast = plan?.isConfirmed ?? false
+        }
+    }
+    enum Kind: String, Codable { case created, edited, repayment }
+    let id: UUID
+    let recordedAt: Date
+    let effectiveDate: Date
+    let kind: Kind
+    let before: Snapshot?
+    let after: Snapshot
+    let note: String?
+
+    static func append(to debt: StoredDebt, plan: StoredPlanItem?, kind: Kind,
+                       before: Snapshot?, effectiveDate: Date = .now, note: String? = nil) throws {
+        var entries = try entries(for: debt)
+        let after = Snapshot(debt, plan: plan)
+        if kind == .edited && before == after { return }
+        entries.append(DebtChange(id: UUID(), recordedAt: .now, effectiveDate: effectiveDate,
+            kind: kind, before: before, after: after, note: note))
+        debt.historyData = try JSONEncoder().encode(entries)
+    }
+
+    static func entries(for debt: StoredDebt) throws -> [DebtChange] {
+        guard let data = debt.historyData else { return [] }
+        return try JSONDecoder().decode([DebtChange].self, from: data)
+    }
 }
 
 @Model final class StoredGoal {
@@ -707,6 +751,20 @@ private struct RootView: View {
     /// balance stale even when the account's confirmation timestamp is recent. We do not
     /// infer a replacement balance from an incomplete transaction history.
     private var balanceReconciliationIssue: String? {
+        // A principal payment deliberately does not post a second account transaction.
+        // Its funding account is unknown, so require all included balances to be checked
+        // after it before trusting their sum again.
+        let debtBalanceConfirmedAt = accounts.isEmpty ? settings.updatedAt : accounts.filter(\.included).map(\.updatedAt).min()
+        if let confirmedAt = debtBalanceConfirmedAt {
+            for debt in debts {
+                guard let history = try? DebtChange.entries(for: debt) else {
+                    return "Не удалось прочитать историю выплат по долгу. Проверь запись перед расчётом доступных денег."
+                }
+                if history.contains(where: { $0.kind == .repayment && $0.effectiveDate > confirmedAt }) {
+                    return "Есть выплата по долгу после сверки баланса. Сверь включённые счета и подтверди их текущие суммы: запись о погашении не меняет деньги на счетах автоматически."
+                }
+            }
+        }
         let includedTransactions = transactionsFromIncludedAccounts(dashboardTransactions)
         if accounts.isEmpty {
             guard settings.hasManualBalance, let confirmedAt = settings.updatedAt else { return nil }
@@ -1012,7 +1070,7 @@ private struct RootView: View {
                         explanation: availableNowExplanation,
                     accountBalance: snapshot.bankBalances.isEmpty ||
                         !IdentityIntegrity.hasUniqueIdentifiers(accounts.map(\.id)) ? nil : snapshot.currentBalance,
-                        accountBalanceStatus: snapshot.balanceReconciliationIssue ?? balanceFreshnessLabel(for: snapshot.dataUpdatedAt),
+                        accountBalanceStatus: balanceFreshnessLabel(for: snapshot.dataUpdatedAt),
                         reserve: Money(kopecks: settings.reserveKopecks) + effectiveReserveTotals.named,
                         goalReserve: effectiveReserveTotals.goals,
                         averageDailySpend: snapshot.hasReliableSpendForecast ? snapshot.forecastDailySpend : nil,
@@ -1162,7 +1220,7 @@ private struct AccountsOverviewView: View {
             dateDetails = "График завершён"
         }
 
-        let calculationStatus = item.isConfirmed ? "В расчёте" : "Не учитывается"
+        let calculationStatus = item.occurrencesRemaining == 0 ? "Не влияет на прогноз" : item.isConfirmed ? "В расчёте" : "Не учитывается"
         let reminder = item.reminderDays > 0 ? "Напоминание за \(item.reminderDays) дн." : nil
         return ([kind, dateDetails, calculationStatus] + [reminder].compactMap { $0 })
             .joined(separator: " · ")
@@ -1285,10 +1343,12 @@ private struct AccountsOverviewView: View {
                             VStack(alignment: .leading, spacing: 4) {
                                 HStack { Text(debt.creditor); Spacer(); SensitiveAmount(value: debt.currentBalance.formatted).fontWeight(.semibold) }
                                 Text(debt.direction.title).font(.caption.weight(.medium)).foregroundStyle(debt.direction == .owedToMe ? .green : .secondary)
-                                Text("Остаток, подтверждённый вручную · обнови после реального платежа")
+                                Text(debt.balanceKopecks == 0 ? "Завершён · история сохранена" : "Подтверждённый остаток · выплаты и история в карточке")
                                     .font(.caption2).foregroundStyle(.secondary)
-                                HStack { Text("Платёж"); SensitiveAmount(value: Money(kopecks: debt.paymentKopecks).formatted); Text("· следующий: \(debt.firstPaymentDate.formatted(date: .abbreviated, time: .omitted))") }
-                                    .font(.caption).foregroundStyle(.secondary)
+                                if debt.balanceKopecks > 0 {
+                                    HStack { Text("Платёж"); SensitiveAmount(value: Money(kopecks: debt.paymentKopecks).formatted); Text("· следующий: \(debt.firstPaymentDate.formatted(date: .abbreviated, time: .omitted))") }
+                                        .font(.caption).foregroundStyle(.secondary)
+                                }
                             }
                         }
                     }.onDelete { offsets in
@@ -1302,7 +1362,7 @@ private struct AccountsOverviewView: View {
                     Button("Отмена", role: .cancel) { pendingDebtDeletionIDs = [] }
                     Button("Удалить долг и его платёж", role: .destructive, action: deleteSelectedDebts)
                 } message: {
-                    Text("Долг и связанный плановый платёж будут удалены. Свободная сумма увеличится, поэтому подтверждай только если запись действительно больше не нужна.")
+                    Text("Долг, его история изменений и связанный плановый платёж будут удалены. Свободная сумма увеличится, поэтому подтверждай только если запись действительно больше не нужна.")
                 }
                 .toolbar {
                     ToolbarItem(placement: .topBarLeading) {
@@ -2372,7 +2432,7 @@ private struct AvailableBalanceCard: View {
                     .foregroundStyle(.orange)
             }
         case .insufficientData(let reason):
-            Text("Дневной лимит не рассчитан: \(reason)")
+            Text(reason == explanation ? "Дневной лимит пока недоступен." : "Дневной лимит не рассчитан: \(reason)")
                 .font(.footnote)
                 .foregroundStyle(AppPalette.heroMuted)
                 .fixedSize(horizontal: false, vertical: true)
@@ -5294,14 +5354,189 @@ private struct AddDebtView: View {
                                   kind: planKind, recurrence: .monthly)
         plan.isConfirmed = direction == .owedByMe || confirmedInForecast
         context.insert(plan)
-        context.insert(StoredDebt(creditor: creditor, balance: debtBalance, payment: monthly,
-                                  firstPaymentDate: firstPaymentDate, planItemID: plan.id, direction: direction))
+        let debt = StoredDebt(creditor: creditor.trimmingCharacters(in: .whitespacesAndNewlines), balance: debtBalance, payment: monthly,
+                              firstPaymentDate: firstPaymentDate, planItemID: plan.id, direction: direction)
+        context.insert(debt)
         plan.reminderDays = reminderDays
         do {
+            try DebtChange.append(to: debt, plan: plan, kind: .created, before: nil)
             try context.save()
             dismiss()
         }
         catch { context.rollback(); saveError = error.localizedDescription }
+    }
+}
+
+private struct RecordDebtPaymentView: View {
+    @Environment(\.modelContext) private var context
+    @Environment(\.dismiss) private var dismiss
+    let debt: StoredDebt
+    let plan: StoredPlanItem?
+    @State private var amount = ""
+    @State private var date = Date()
+    @State private var nextPaymentDate: Date
+    @State private var note = ""
+    @State private var saveError: String?
+
+    init(debt: StoredDebt, plan: StoredPlanItem?) {
+        self.debt = debt; self.plan = plan
+        _nextPaymentDate = State(initialValue: max(debt.firstPaymentDate, .now))
+    }
+
+    private var reduction: Money? { Money.parseRubles(amount).map { Money(rubles: $0) } }
+    private var remaining: Money? {
+        guard let reduction, reduction > .zero, reduction <= debt.currentBalance else { return nil }
+        return debt.currentBalance - reduction
+    }
+
+    var body: some View {
+        Form {
+            Section("Фактическое уменьшение основного долга") {
+                TextField("Погашено основного долга, ₽", text: $amount).keyboardType(.decimalPad)
+                    .accessibilityIdentifier("debt.paymentAmount")
+                DatePicker("Дата выплаты", selection: $date, in: ...Date(), displayedComponents: .date)
+                TextField("Комментарий", text: $note, axis: .vertical).lineLimit(1...4)
+                HStack {
+                    Text("Останется")
+                    Spacer()
+                    if let remaining { SensitiveAmount(value: remaining.formatted).monospacedDigit() }
+                    else { Text("Проверь сумму").foregroundStyle(.secondary) }
+                }.accessibilityIdentifier("debt.paymentRemainder")
+            }
+            if remaining?.kopecks != 0 {
+                Section("Дальнейший план") {
+                    DatePicker("Следующий платёж", selection: $nextPaymentDate, in: Date()..., displayedComponents: .date)
+                    Text("Укажи дату следующего ещё не оплаченного взноса. Она не переносится автоматически.")
+                        .font(.footnote).foregroundStyle(.secondary)
+                }
+            }
+            Section {
+                Text("Запись уменьшает только подтверждённый основной долг. Проценты и комиссии сюда не включай. Операция по счёту не создаётся. Если выплата позже сверки баланса, расчёт доступных денег остановится до повторной сверки включённых счетов.")
+                    .font(.footnote).foregroundStyle(.secondary)
+                if remaining?.kopecks == 0 {
+                    Text("Долг будет завершён, будущие взносы исчезнут из прогноза. История останется.")
+                        .font(.footnote)
+                }
+            }
+        }
+        .navigationTitle(debt.direction == .owedByMe ? "Погашение долга" : "Возврат долга")
+        .saveFailureAlert($saveError)
+        .toolbar {
+            ToolbarItem(placement: .cancellationAction) { Button("Отмена") { dismiss() } }
+            ToolbarItem(placement: .confirmationAction) {
+                Button("Записать", action: save).disabled(remaining == nil)
+                    .accessibilityIdentifier("debt.confirmPayment")
+            }
+            ToolbarItemGroup(placement: .keyboard) { Spacer(); Button("Готово") { UIApplication.shared.sendAction(#selector(UIResponder.resignFirstResponder), to: nil, from: nil, for: nil) } }
+        }
+    }
+
+    private func save() {
+        guard let remaining, let plan, date <= .now,
+              debt.balanceKopecks > 0, debt.paymentKopecks > 0 else {
+            saveError = "Проверь сумму, дату и связанный платёж в карточке долга."
+            return
+        }
+        let monthly = Money(kopecks: debt.paymentKopecks)
+        let nextDate = remaining == .zero ? debt.firstPaymentDate : nextPaymentDate
+        let proposed = ScheduledItem(id: plan.id, title: plan.title,
+            amount: remaining == .zero ? monthly : min(remaining, monthly), dueDate: nextDate,
+            isConfirmed: plan.isConfirmed, kind: debt.direction == .owedByMe ? .debtRepayment : .debtCollection,
+            recurrence: .monthly, occurrencesRemaining: remaining == .zero ? 0 : nil)
+        do {
+            guard try canPreserveUpcomingSettlements(for: proposed, in: context) else {
+                saveError = "Изменение нарушит привязку уже подтверждённого будущего взноса. Сначала проверь его в истории операций."
+                return
+            }
+            let before = DebtChange.Snapshot(debt, plan: plan)
+            try context.transaction {
+                debt.balanceKopecks = remaining.kopecks
+                debt.firstPaymentDate = nextDate
+                plan.amountKopecks = proposed.amount.kopecks
+                plan.dueDate = nextDate
+                plan.kindRaw = proposed.kind.rawValue
+                plan.recurrenceRaw = ScheduledItem.Recurrence.monthly.rawValue
+                plan.occurrencesRemaining = remaining == .zero ? 0 : nil
+                plan.finalOccurrenceKopecks = nil
+                let trimmed = note.trimmingCharacters(in: .whitespacesAndNewlines)
+                try DebtChange.append(to: debt, plan: plan, kind: .repayment, before: before,
+                                      effectiveDate: date, note: trimmed.isEmpty ? nil : trimmed)
+                try context.save()
+            }
+            dismiss()
+        } catch {
+            context.rollback()
+            saveError = error.localizedDescription
+        }
+    }
+}
+
+private struct DebtHistoryView: View {
+    let debt: StoredDebt
+    private var history: Result<[DebtChange], Error> { Result { try DebtChange.entries(for: debt) } }
+
+    var body: some View {
+        List {
+            switch history {
+            case .failure:
+                Text("Не удалось прочитать историю. Сохранённые данные не изменены.")
+            case .success(let entries):
+                if entries.first?.kind != .created {
+                    Text("История ведётся с первого сохранённого изменения. Более ранних записей нет.")
+                        .font(.footnote).foregroundStyle(.secondary)
+                }
+                if entries.isEmpty { Text("Изменений пока нет.") }
+                ForEach(entries.reversed()) { entry in
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text(entry.kind == .created ? "Долг создан" : entry.kind == .edited ? "Данные исправлены" : entry.after.balanceKopecks == 0 ? "Долг погашен" : "Частичное погашение")
+                            .font(.headline)
+                        Text(entry.effectiveDate.formatted(date: .abbreviated, time: .omitted))
+                            .font(.caption).foregroundStyle(.secondary)
+                        Text(entry.after.creditor + " · " + entry.after.direction.title).font(.subheadline)
+                        if let before = entry.before {
+                            if before.balanceKopecks != entry.after.balanceKopecks {
+                                HStack {
+                                    SensitiveAmount(value: Money(kopecks: before.balanceKopecks).formatted)
+                                    Image(systemName: "arrow.right").accessibilityLabel("остаток изменился на")
+                                    SensitiveAmount(value: Money(kopecks: entry.after.balanceKopecks).formatted)
+                                }.monospacedDigit().accessibilityIdentifier("debt.historyBalanceChange")
+                            } else { SensitiveAmount(value: Money(kopecks: entry.after.balanceKopecks).formatted) }
+                            if before.paymentKopecks != entry.after.paymentKopecks {
+                                HStack {
+                                    Text("Прежний платёж в месяц")
+                                    SensitiveAmount(value: Money(kopecks: before.paymentKopecks).formatted)
+                                }.font(.footnote)
+                            }
+                            if before.nextPaymentDate != entry.after.nextPaymentDate {
+                                Text("Прежняя дата: " + before.nextPaymentDate.formatted(date: .abbreviated, time: .omitted))
+                                    .font(.footnote)
+                            }
+                            if entry.kind == .repayment {
+                                HStack {
+                                    Text("Основной долг уменьшен на")
+                                    SensitiveAmount(value: Money(kopecks: before.balanceKopecks - entry.after.balanceKopecks).formatted)
+                                }.font(.footnote)
+                            }
+                            if before.creditor != entry.after.creditor { Text("Прежнее имя: " + before.creditor).font(.footnote) }
+                            if before.direction != entry.after.direction { Text("Прежнее направление: " + before.direction.title).font(.footnote) }
+                        } else { SensitiveAmount(value: Money(kopecks: entry.after.balanceKopecks).formatted) }
+                        if entry.after.balanceKopecks > 0 {
+                            HStack { Text("Взнос"); SensitiveAmount(value: Money(kopecks: entry.after.paymentKopecks).formatted) }
+                                .font(.footnote)
+                            Text("Следующий: " + entry.after.nextPaymentDate.formatted(date: .abbreviated, time: .omitted))
+                                .font(.footnote)
+                            Text(entry.after.direction == .owedToMe && !entry.after.confirmedInForecast ? "Возврат не подтверждён для прогноза" : "Платёж включён в прогноз")
+                                .font(.footnote).foregroundStyle(.secondary)
+                        }
+                        if let note = entry.note { Text(note).font(.subheadline) }
+                        Text("Записано: " + entry.recordedAt.formatted(date: .abbreviated, time: .shortened))
+                            .font(.caption2).foregroundStyle(.secondary)
+                    }.padding(.vertical, 4)
+                }
+            }
+        }
+        .safeAreaInset(edge: .bottom, spacing: 0) { Color.clear.frame(height: 96) }
+        .navigationTitle("История долга")
     }
 }
 
@@ -5317,10 +5552,35 @@ private struct EditDebtView: View {
     @State private var payment = ""
     @State private var nextPaymentDate = Date()
     @State private var reminderDays = 0
+    @State private var showRepayment = false
     @State private var saveError: String?
+
+    private var hasUnsavedChanges: Bool {
+        creditor != debt.creditor || direction != debt.direction ||
+        Money.parseRubles(balance).map { Money(rubles: $0).kopecks } != debt.balanceKopecks ||
+        Money.parseRubles(payment).map { Money(rubles: $0).kopecks } != debt.paymentKopecks ||
+        nextPaymentDate != debt.firstPaymentDate || reminderDays != (plan?.reminderDays ?? 0) ||
+        confirmedInForecast != (plan?.isConfirmed ?? false)
+    }
 
     var body: some View {
         Form {
+            Section {
+                HStack {
+                    Text(debt.balanceKopecks == 0 ? "Долг завершён" : "Остаток долга")
+                    Spacer()
+                    SensitiveAmount(value: debt.currentBalance.formatted).monospacedDigit().fontWeight(.semibold)
+                        .accessibilityIdentifier("debt.currentBalance")
+                }
+                if debt.balanceKopecks > 0 {
+                    Button(debt.direction == .owedByMe ? "Отметить погашение" : "Отметить возврат") { showRepayment = true }
+                        .accessibilityIdentifier("debt.recordPayment")
+                        .disabled(hasUnsavedChanges)
+                    if hasUnsavedChanges { Text("Сначала сохрани изменения карточки.").font(.footnote).foregroundStyle(.secondary) }
+                }
+                NavigationLink("История изменений") { DebtHistoryView(debt: debt) }
+                    .accessibilityIdentifier("debt.history")
+            }
             Section("Долг") {
                 Picker("Направление", selection: Binding(get: { direction }, set: { value in
                     direction = value
@@ -5328,9 +5588,18 @@ private struct EditDebtView: View {
                 })) {
                     ForEach(DebtDirection.allCases, id: \.self) { Text($0.title).tag($0) }
                 }
-                TextField(direction == .owedByMe ? "Кому должен" : "Кто должен тебе", text: $creditor)
-                TextField(direction == .owedByMe ? "Подтверждённый долг, ₽" : "Подтверждённый долг тебе, ₽", text: $balance).keyboardType(.decimalPad)
-                TextField("Платёж в месяц, ₽", text: $payment).keyboardType(.decimalPad)
+                VStack(alignment: .leading, spacing: 6) {
+                    Text(direction == .owedByMe ? "Кому должен" : "Кто должен тебе").font(.caption).foregroundStyle(.secondary)
+                    TextField(direction == .owedByMe ? "Кому должен" : "Кто должен тебе", text: $creditor)
+                }
+                VStack(alignment: .leading, spacing: 6) {
+                    Text("Подтверждённый остаток, ₽").font(.caption).foregroundStyle(.secondary)
+                    TextField(direction == .owedByMe ? "Подтверждённый долг, ₽" : "Подтверждённый долг тебе, ₽", text: $balance).keyboardType(.decimalPad)
+                }
+                VStack(alignment: .leading, spacing: 6) {
+                    Text("Платёж в месяц, ₽").font(.caption).foregroundStyle(.secondary)
+                    TextField("Платёж в месяц, ₽", text: $payment).keyboardType(.decimalPad)
+                }
                 DatePicker("Следующий платёж", selection: $nextPaymentDate, in: Date()..., displayedComponents: .date)
                 Picker("Напомнить заранее", selection: $reminderDays) {
                     Text("Не напоминать").tag(0)
@@ -5344,7 +5613,7 @@ private struct EditDebtView: View {
                 }
             }
             Section {
-                Text("Остаток должен соответствовать последней фактической информации от кредитора. Проценты и внесённые платежи автоматически не рассчитываются.")
+                Text("Остаток должен соответствовать последней фактической информации от кредитора. Проценты не рассчитываются. Отмечай уменьшение основного долга отдельным действием; ручные исправления также сохраняются в истории.")
                     .font(.footnote).foregroundStyle(.secondary)
                 Text(debt.direction == .owedByMe
                     ? "При нулевом остатке регулярный платёж перестанет резервироваться."
@@ -5355,15 +5624,20 @@ private struct EditDebtView: View {
         .navigationTitle("Изменить долг")
         .saveFailureAlert($saveError)
         .toolbar { ToolbarItem(placement: .confirmationAction) { Button("Сохранить", action: save) } }
-        .onAppear {
+        .sheet(isPresented: $showRepayment, onDismiss: loadDraft) {
+            NavigationStack { RecordDebtPaymentView(debt: debt, plan: plan) }
+        }
+        .onAppear(perform: loadDraft)
+    }
+
+    private func loadDraft() {
             creditor = debt.creditor
             direction = debt.direction
             balance = NSDecimalNumber(decimal: Money(kopecks: debt.balanceKopecks).decimalRubles).stringValue
             payment = NSDecimalNumber(decimal: Money(kopecks: debt.paymentKopecks).decimalRubles).stringValue
-            nextPaymentDate = max(debt.firstPaymentDate, .now)
+            nextPaymentDate = debt.firstPaymentDate
             reminderDays = plan?.reminderDays ?? 0
             confirmedInForecast = plan?.isConfirmed ?? false
-        }
     }
 
     private func save() {
@@ -5411,6 +5685,7 @@ private struct EditDebtView: View {
                 return
             }
         }
+        let before = DebtChange.Snapshot(debt, plan: plan)
         debt.creditor = creditor.trimmingCharacters(in: .whitespacesAndNewlines)
         debt.directionRaw = direction.rawValue
         debt.balanceKopecks = debtBalance.kopecks
@@ -5438,6 +5713,7 @@ private struct EditDebtView: View {
         planItem.finalOccurrenceKopecks = nil
 
         do {
+            try DebtChange.append(to: debt, plan: planItem, kind: .edited, before: before)
             try context.save()
             dismiss()
         } catch {
