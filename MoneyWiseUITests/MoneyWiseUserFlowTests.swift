@@ -522,6 +522,67 @@ extension MoneyWiseUserFlowTests {
     }
 
     @MainActor
+    func testTimeMachineComparisonIsReadOnly() throws {
+        executionTimeAllowance = 180
+        continueAfterFailure = false
+        let app = XCUIApplication()
+        app.launchArguments.append("--moneywise-p0-ui-fixture")
+        app.launchEnvironment["MONEYWISE_P0_UI_FIXTURE"] = "1"
+        app.launch()
+        XCTAssertTrue(app.tabBars.buttons["План"].waitForExistence(timeout: 15))
+        app.tabBars.buttons["План"].tap()
+        app.buttons["Настройки приложения"].tap()
+        let reserve = app.textFields["Не опускаться ниже, ₽"]
+        for _ in 0..<5 where !reserve.isHittable { app.swipeUp() }
+        XCTAssertTrue(reserve.waitForExistence(timeout: 5))
+        reserve.tap()
+        reserve.typeText(String(repeating: XCUIKeyboardKey.delete.rawValue, count: (reserve.value as? String ?? "").count) + "1000")
+        app.buttons["Сохранить"].tap()
+        app.tabBars.buttons["Обзор"].tap()
+        app.buttons["Горизонт"].tap()
+        XCTAssertTrue(app.navigationBars["Финансовый горизонт"].waitForExistence(timeout: 5))
+        let startScenario = app.buttons["Проверить покупку"]
+        for _ in 0..<8 where !startScenario.isHittable { app.swipeUp() }
+        XCTAssertTrue(startScenario.isHittable)
+        startScenario.tap()
+        let amount = app.textFields["Сумма гипотетической покупки"]
+        for _ in 0..<8 where !amount.isHittable { app.swipeDown() }
+        XCTAssertTrue(amount.waitForExistence(timeout: 5))
+        amount.tap()
+        amount.typeText("20000")
+        let done = app.buttons["Готово"]
+        XCTAssertTrue(done.waitForExistence(timeout: 5), "Числовую клавиатуру можно закрыть")
+        done.tap()
+        let shortage = app.buttons["К первой нехватке"]
+        for _ in 0..<5 where !shortage.isHittable { app.swipeUp() }
+        XCTAssertTrue(shortage.waitForExistence(timeout: 5))
+        shortage.tap()
+        let selected = app.staticTexts["horizon.selectedBalance"]
+        let baseline = app.staticTexts["horizon.baselineBalance"]
+        let delta = app.staticTexts["horizon.scenarioDelta"]
+        XCTAssertTrue(delta.waitForExistence(timeout: 5))
+        XCTAssertTrue(selected.label.contains("−") || selected.label.contains("-"))
+        XCTAssertFalse(baseline.label.contains("−") || baseline.label.contains("-"))
+        XCTAssertEqual(delta.label.filter { $0.isNumber }, "2000000")
+        XCTAssertTrue(delta.label.contains("−") || delta.label.contains("-"))
+        XCTAssertTrue(app.descendants(matching: .any).matching(identifier: "horizon.shortage").firstMatch.exists)
+        let result = XCTAttachment(screenshot: XCUIScreen.main.screenshot())
+        result.name = "Time Machine — baseline versus negative purchase scenario"
+        result.lifetime = .keepAlways
+        add(result)
+        let remove = app.buttons["Убрать"]
+        for _ in 0..<6 where !remove.isHittable { app.swipeDown() }
+        XCTAssertTrue(remove.isHittable)
+        remove.tap()
+        XCTAssertFalse(delta.exists, "Отмена убирает сравнение и возвращает исходный прогноз")
+        XCTAssertTrue(app.buttons["Проверить покупку"].exists)
+        app.navigationBars.buttons.firstMatch.tap()
+        app.buttons["Горизонт"].tap()
+        XCTAssertTrue(app.navigationBars["Финансовый горизонт"].waitForExistence(timeout: 5))
+        XCTAssertFalse(app.textFields["Сумма гипотетической покупки"].exists, "Сценарий не сохраняется при выходе с экрана")
+    }
+
+    @MainActor
     func testFinancialHorizonKeepsRangePickerUsableWithoutReliableHistory() throws {
         let app = XCUIApplication()
         app.launch()

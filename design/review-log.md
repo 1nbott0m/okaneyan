@@ -70,3 +70,9 @@
 Replaced the generic Horizon icon tile/single-line panel with an editorial readout, exact selected timestamp, balance/after-reserve series, data-driven event marks and interval explanation. Previous/next controls provide a gesture alternative; custom chart exposes an adjustable accessibility action. Corrected the false calendar-day-end label. Scenario editor drops translation under Reduce Motion. No MoneyCore arithmetic or store schema changed.
 
 Baseline native capture and changed UI run produced 1/1 pass after correcting a time-dependent test expectation. Video verifies direct light response with fixed amount. The final range-text contrast and overlapping-series note receive build confirmation, without repeating the financial scenario. Snapshot and fixture limitations are recorded in visual-gap-audit. No whole-artistic-acceptance claim.
+
+## 2026-10-31 — Time Machine baseline/scenario comparison
+
+Native scenario entry now precedes the graph, with an explicit Done keyboard action and a “Показать сравнение” route to the affected timestamp. Baseline/scenario share the same FinanceEngine input/anchor and plot scale; the selected moment shows baseline balance and actual scenario delta. First-shortage selection and a zero reference make a negative path readable. Purchase markers/dated rows now identify the first actual balance effect, rather than a calendar-date flag that can precede a later event within that day. Model inputs never write transactions.
+
+Before and after native states inspected. Focused changed scenario passed 1/1, including a real Settings reserve edit, 20,000₽ scenario, negative balance, −20,000₽ delta, removal and exit/reopen reset. SQLite independently confirms original ledger rows and balance remain. Source calculation implementation/schema unchanged. Remaining artistic/accessibility gates are explicit in visual-gap-audit; no full-product completion claim.

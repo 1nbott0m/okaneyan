@@ -12,6 +12,7 @@ struct FinancialHorizonView: View {
     @State private var selectedPointIndex = 0
     @State private var projectionAnchor = Date.now
     @State private var scenarioEnabled = false
+    @FocusState private var isScenarioAmountFocused: Bool
     @State private var scenarioAmount = ""
     @State private var scenarioDate = Date.now
     @State private var isShowingProjectionValues = false
@@ -27,8 +28,10 @@ struct FinancialHorizonView: View {
         return false
     }
     var body: some View {
-        let projection = FinanceEngine().horizon(snapshot, days: days, hypotheticalPurchase: hypothetical, now: projectionAnchor)
+        let baseline = FinanceEngine().horizon(snapshot, days: days, now: projectionAnchor)
+        let projection = hypothetical == nil ? baseline : FinanceEngine().horizon(snapshot, days: days, hypotheticalPurchase: hypothetical, now: projectionAnchor)
         let hasReliablePointForecast = hasReliableForecast(projection.confidence)
+        ScrollViewReader { scroll in
         ScrollView {
             VStack(alignment: .leading, spacing: 20) {
                 VStack(alignment: .leading, spacing: 6) {
@@ -47,27 +50,23 @@ struct FinancialHorizonView: View {
                 }
                 rangePicker
                 confidenceView(projection.confidence)
-                projectionChart(projection, hasReliablePointForecast: hasReliablePointForecast)
-                if scenarioEnabled && hasReliablePointForecast {
-                    scenarioEditor(isApplied: projection.hypotheticalPurchase != nil)
+                if hasReliablePointForecast {
+                    if scenarioEnabled {
+                        scenarioEditor(projection, baseline: baseline) { index in
+                            isScenarioAmountFocused = false
+                            selectedPointIndex = index
+                            withAnimation(reduceMotion ? nil : .easeInOut(duration: 0.25)) {
+                                scroll.scrollTo("horizon-projection", anchor: .top)
+                            }
+                        }
+                    } else {
+                        scenarioStartButton
+                    }
                 }
+                projectionChart(projection, baseline: baseline, hasReliablePointForecast: hasReliablePointForecast)
+                    .id("horizon-projection")
                 projectionSummary
                 eventDetails
-                if !scenarioEnabled && hasReliablePointForecast {
-                    Button {
-                        withAnimation(reduceMotion ? nil : .spring(response: 0.42, dampingFraction: 0.84)) {
-                            scenarioEnabled = true
-                            scenarioDate = Calendar.current.date(byAdding: .day, value: 1, to: .now) ?? .now
-                        }
-                    } label: {
-                        Label("Проверить покупку", systemImage: "slider.horizontal.3")
-                            .font(AppTypography.ui(17, weight: .bold))
-                            .frame(maxWidth: .infinity).padding(15)
-                            .background(AppPalette.accent, in: RoundedRectangle(cornerRadius: 17, style: .continuous))
-                            .foregroundStyle(.white)
-                    }
-                    .buttonStyle(.plain)
-                }
                 Text("Это прогноз для планирования, а не обещание банка. Сценарий покупки не создаёт операцию и исчезает при выходе с экрана.")
                     .font(.footnote).foregroundStyle(.secondary)
                     .padding(.top, 4)
@@ -76,6 +75,16 @@ struct FinancialHorizonView: View {
             .frame(maxWidth: 760, alignment: .leading)
             .frame(maxWidth: .infinity)
         }
+        .scrollDismissesKeyboard(.interactively)
+        }
+        .toolbar {
+            ToolbarItemGroup(placement: .keyboard) {
+                if isScenarioAmountFocused {
+                    Spacer()
+                    Button("Готово") { isScenarioAmountFocused = false }
+                }
+            }
+        }
         .background(AppPalette.canvas)
         .navigationTitle("Финансовый горизонт")
         .navigationBarTitleDisplayMode(.inline)
@@ -83,6 +92,31 @@ struct FinancialHorizonView: View {
             if phase == .active { projectionAnchor = .now }
         }
         .onChange(of: snapshot.dataUpdatedAt) { _, _ in projectionAnchor = .now }
+    }
+
+    private var scenarioStartButton: some View {
+        Button {
+            withAnimation(reduceMotion ? nil : .spring(response: 0.42, dampingFraction: 0.84)) {
+                scenarioEnabled = true
+                scenarioDate = Calendar.current.date(byAdding: .day, value: 1, to: projectionAnchor) ?? projectionAnchor
+            }
+        } label: {
+            Label("Проверить покупку", systemImage: "slider.horizontal.3")
+                .font(AppTypography.ui(17, weight: .bold))
+                .frame(maxWidth: .infinity, minHeight: 44).padding(10)
+                .background(AppPalette.accent, in: RoundedRectangle(cornerRadius: 17, style: .continuous))
+                .foregroundStyle(AppPalette.hero)
+        }
+        .buttonStyle(.plain)
+    }
+
+    private func firstPurchaseEffectIndex(_ projection: FinancialHorizon, baseline: FinancialHorizon) -> Int? {
+        guard projection.hypotheticalPurchase != nil else { return nil }
+        return projection.points.indices.first { index in
+            baseline.points.indices.contains(index) &&
+                projection.points[index].date == baseline.points[index].date &&
+                projection.points[index].projectedBalance != baseline.points[index].projectedBalance
+        }
     }
 
     private var rangePicker: some View {
@@ -130,7 +164,7 @@ struct FinancialHorizonView: View {
         .font(.footnote)
     }
 
-    private func projectionChart(_ projection: FinancialHorizon, hasReliablePointForecast: Bool) -> some View {
+    private func projectionChart(_ projection: FinancialHorizon, baseline: FinancialHorizon, hasReliablePointForecast: Bool) -> some View {
         VStack(alignment: .leading, spacing: 15) {
             Text(projection.hypotheticalPurchase == nil ? "ПРОГНОЗ БАЛАНСА" : "СЦЕНАРИЙ ПОКУПКИ")
                 .font(AppTypography.detail(12, weight: .semibold)).tracking(1.4)
@@ -167,6 +201,22 @@ struct FinancialHorizonView: View {
                         .font(AppTypography.amount(17, weight: .semibold))
                 }
             }
+            if projection.hypotheticalPurchase != nil,
+               !projection.points.isEmpty,
+               let point = projection.points.dropFirst(min(max(0, selectedPointIndex), projection.points.count - 1)).first,
+               let original = baseline.points.first(where: { $0.date == point.date }) {
+                VStack(spacing: 10) {
+                    comparisonRow("Без покупки", amount: original.projectedBalance, identifier: "horizon.baselineBalance")
+                    comparisonRow("Изменение от покупки", amount: point.projectedBalance - original.projectedBalance,
+                                  identifier: "horizon.scenarioDelta")
+                    if point.projectedBalance < .zero {
+                        Label("На выбранный момент баланс ниже нуля", systemImage: "exclamationmark.triangle.fill")
+                            .font(.subheadline.weight(.medium)).foregroundStyle(.orange)
+                            .accessibilityIdentifier("horizon.shortage")
+                    }
+                }
+                .padding(.vertical, 8)
+            }
             if !hasReliablePointForecast {
                 ContentUnavailableView("Точного графика пока нет", systemImage: "chart.xyaxis.line",
                     description: Text("Нужны свежий подтверждённый баланс и достаточно истории, чтобы оценить обычные расходы. Известные платежи смотри ниже."))
@@ -175,7 +225,9 @@ struct FinancialHorizonView: View {
                 ContentUnavailableView("Пока нечего прогнозировать", systemImage: "chart.xyaxis.line")
                     .frame(height: 180)
             } else {
-                HorizonLineChart(points: projection.points, selectedIndex: $selectedPointIndex)
+                HorizonLineChart(points: projection.points,
+                                 baselinePoints: projection.hypotheticalPurchase == nil ? [] : baseline.points,
+                                 selectedIndex: $selectedPointIndex)
                     .frame(height: 190)
                     .accessibilityElement(children: .ignore)
                     .accessibilityLabel(chartAccessibilityLabel(for: projection))
@@ -196,17 +248,17 @@ struct FinancialHorizonView: View {
                 }
                 .font(.caption2).foregroundStyle(.secondary)
                 HStack(spacing: 18) {
-                    Label { Text("Баланс") } icon: { Rectangle().fill(AppPalette.softAccent).frame(width: 18, height: 2) }
-                    Label { Text("После резервов") } icon: {
+                    Label { Text(projection.hypotheticalPurchase == nil ? "Баланс" : "С покупкой") } icon: { Rectangle().fill(AppPalette.softAccent).frame(width: 18, height: 2) }
+                    Label { Text(projection.hypotheticalPurchase == nil ? "После резервов" : "Без покупки") } icon: {
                         Rectangle().stroke(.secondary, style: StrokeStyle(lineWidth: 1, dash: [3, 2])).frame(width: 18, height: 2)
                     }
                 }
                 .font(.caption).foregroundStyle(.secondary)
-                if projection.points.allSatisfy({ $0.projectedBalance == $0.availableAfterReserves }) {
+                if projection.hypotheticalPurchase == nil && projection.points.allSatisfy({ $0.projectedBalance == $0.availableAfterReserves }) {
                     Text("На этом отрезке обе линии совпадают.").font(.caption).foregroundStyle(.secondary)
                 }
-                selectedPointEvents(projection)
-                projectionValues(projection.points)
+                selectedPointEvents(projection, baseline: baseline)
+                projectionValues(projection.points, purchaseIndex: firstPurchaseEffectIndex(projection, baseline: baseline))
             }
         }
         .padding(.vertical, 18)
@@ -214,7 +266,7 @@ struct FinancialHorizonView: View {
         .overlay(alignment: .bottom) { Rectangle().fill(AppPalette.line).frame(height: 1) }
     }
 
-    @ViewBuilder private func selectedPointEvents(_ projection: FinancialHorizon) -> some View {
+    @ViewBuilder private func selectedPointEvents(_ projection: FinancialHorizon, baseline: FinancialHorizon) -> some View {
         if !projection.points.isEmpty {
             let index = min(max(0, selectedPointIndex), projection.points.count - 1)
             let point = projection.points[index]
@@ -237,7 +289,7 @@ struct FinancialHorizonView: View {
                     Text("Обычные расходы дополнительно учтены по оценке. Сценарная покупка, если задана, входит в списания модели.")
                         .font(.caption).foregroundStyle(.secondary)
                 }
-                if point.isHypotheticalPurchaseDay {
+                if firstPurchaseEffectIndex(projection, baseline: baseline) == index {
                     Label("Здесь учтена покупка в сценарии", systemImage: "cart")
                         .font(.caption).foregroundStyle(AppPalette.softAccent)
                 }
@@ -246,7 +298,7 @@ struct FinancialHorizonView: View {
         }
     }
 
-    private func projectionValues(_ points: [FinancialHorizon.Point]) -> some View {
+    private func projectionValues(_ points: [FinancialHorizon.Point], purchaseIndex: Int?) -> some View {
         DisclosureGroup(isExpanded: $isShowingProjectionValues) {
             VStack(spacing: 0) {
                 ForEach(points) { point in
@@ -255,7 +307,7 @@ struct FinancialHorizonView: View {
                             Text(point.date.formatted(date: .abbreviated, time: .shortened))
                                 .font(AppTypography.detail(13, weight: .medium))
                             Spacer()
-                            if point.isHypotheticalPurchaseDay {
+                            if let purchaseIndex, points[purchaseIndex].id == point.id {
                                 Text("Покупка в сценарии")
                                     .font(.caption2).foregroundStyle(AppPalette.accent)
                             }
@@ -292,8 +344,10 @@ struct FinancialHorizonView: View {
         .padding(.top, 3)
     }
 
-    private func scenarioEditor(isApplied: Bool) -> some View {
-        VStack(alignment: .leading, spacing: 15) {
+    private func scenarioEditor(_ projection: FinancialHorizon, baseline: FinancialHorizon,
+                                onSelect: @escaping (Int) -> Void) -> some View {
+        let isApplied = projection.hypotheticalPurchase != nil
+        return VStack(alignment: .leading, spacing: 15) {
             HStack {
                 Label("Покупка в сценарии", systemImage: "cart")
                     .font(AppTypography.ui(17, weight: .bold))
@@ -311,6 +365,7 @@ struct FinancialHorizonView: View {
                     .keyboardType(.decimalPad)
                     .font(AppTypography.amount(22, weight: .semibold))
                     .accessibilityLabel("Сумма гипотетической покупки")
+                    .focused($isScenarioAmountFocused)
                 Text("₽").font(AppTypography.amount(20, weight: .semibold)).foregroundStyle(.secondary)
             }
             .padding(14)
@@ -322,10 +377,28 @@ struct FinancialHorizonView: View {
                   (!isApplied ? "Дата покупки находится за пределами выбранного периода. Выбери более раннюю дату или увеличь горизонт." :
                    "Покупка учтена только в этой временной модели.")))
                 .font(.footnote).foregroundStyle(.secondary)
+            if let index = firstPurchaseEffectIndex(projection, baseline: baseline) {
+                Button("Показать сравнение") { onSelect(index) }
+                    .font(.subheadline.weight(.semibold)).frame(minHeight: 44)
+                if let shortage = projection.points.firstIndex(where: { $0.projectedBalance < .zero }) {
+                    Button("К первой нехватке") { onSelect(shortage) }
+                        .font(.subheadline.weight(.semibold)).foregroundStyle(.orange).frame(minHeight: 44)
+                }
+            }
         }
         .padding(18)
         .background(AppPalette.raisedSurface, in: RoundedRectangle(cornerRadius: 23, style: .continuous))
         .transition(reduceMotion ? .identity : .opacity.combined(with: .move(edge: .top)))
+    }
+
+    private func comparisonRow(_ title: String, amount: Money, identifier: String) -> some View {
+        HStack(alignment: .firstTextBaseline) {
+            Text(title).font(.subheadline).foregroundStyle(.secondary)
+            Spacer(minLength: 8)
+            FinanceSensitiveAmount(value: amount.formatted)
+                .font(AppTypography.amount(17, weight: .semibold))
+                .accessibilityIdentifier(identifier)
+        }
     }
 
     private var projectionSummary: some View {
@@ -414,11 +487,14 @@ struct FinancialHorizonView: View {
 
 private struct HorizonLineChart: View {
     let points: [FinancialHorizon.Point]
+    let baselinePoints: [FinancialHorizon.Point]
     @Binding var selectedIndex: Int
 
     var body: some View {
         GeometryReader { geometry in
-            let values = points.flatMap { [Double($0.projectedBalance.kopecks), Double($0.availableAfterReserves.kopecks)] }
+            let values = points.map { Double($0.projectedBalance.kopecks) } +
+                (baselinePoints.isEmpty ? points.map { Double($0.availableAfterReserves.kopecks) }
+                                        : baselinePoints.map { Double($0.projectedBalance.kopecks) })
             let low = min(values.min() ?? 0, 0)
             let high = max(values.max() ?? 1, 1)
             let spread = max(1, high - low)
@@ -432,11 +508,21 @@ private struct HorizonLineChart: View {
                 }
                 seriesPath(size: geometry.size, low: low, spread: spread, available: false)
                     .stroke(AppPalette.softAccent, style: StrokeStyle(lineWidth: 2.6, lineCap: .round, lineJoin: .round))
-                seriesPath(size: geometry.size, low: low, spread: spread, available: true)
+                seriesPath(size: geometry.size, low: low, spread: spread, available: baselinePoints.isEmpty,
+                           series: baselinePoints.isEmpty ? points : baselinePoints)
                     .stroke(Color.secondary, style: StrokeStyle(lineWidth: 1.5, lineCap: .round, dash: [5, 4]))
+                if low < 0 {
+                    let zeroY = yPosition(.zero, low: low, spread: spread, height: geometry.size.height)
+                    Path { path in
+                        path.move(to: CGPoint(x: 0, y: zeroY))
+                        path.addLine(to: CGPoint(x: geometry.size.width, y: zeroY))
+                    }.stroke(Color.orange.opacity(0.65), style: StrokeStyle(lineWidth: 1, dash: [2, 3]))
+                    Text("0 ₽").font(.caption2).foregroundStyle(.orange)
+                        .position(x: 15, y: max(8, zeroY - 9))
+                }
                 // Event markers are data: confirmed cash flow or a hypothetical purchase.
                 ForEach(Array(points.enumerated()), id: \.element.id) { index, point in
-                    if point.confirmedInflows > .zero || point.confirmedOutflows > .zero || point.isHypotheticalPurchaseDay {
+                    if point.confirmedInflows > .zero || point.confirmedOutflows > .zero {
                         Circle().fill(AppPalette.canvas)
                             .overlay(Circle().stroke(AppPalette.softAccent, lineWidth: 1.5))
                             .frame(width: 7, height: 7)
@@ -469,9 +555,10 @@ private struct HorizonLineChart: View {
         guard !points.isEmpty, width > 0 else { return }
         selectedIndex = Int((min(1, max(0, x / width)) * CGFloat(points.count - 1)).rounded())
     }
-    private func seriesPath(size: CGSize, low: Double, spread: Double, available: Bool) -> Path {
+    private func seriesPath(size: CGSize, low: Double, spread: Double, available: Bool,
+                            series: [FinancialHorizon.Point]? = nil) -> Path {
         var path = Path()
-        for (index, point) in points.enumerated() {
+        for (index, point) in (series ?? points).enumerated() {
             let value = available ? point.availableAfterReserves : point.projectedBalance
             let p = CGPoint(x: xPosition(index, width: size.width), y: yPosition(value, low: low, spread: spread, height: size.height))
             if index == 0 { path.move(to: p) } else { path.addLine(to: p) }
