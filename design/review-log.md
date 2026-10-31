@@ -64,3 +64,9 @@
 - Implemented procedural graphite metal with grain, light band and bevel; support text raised for contrast. Existing static and disclosure layouts preserved. Reviewed native collapsed before/after and final Reduce Motion still; expanded acceptance capture retained.
 - Native app builds and launches. One targeted UI acceptance passed 1/1 (51s): expand/collapse and future-month budget edit/relaunch. Final support-color adjustment was rebuilt/launched after that test; no second UI run needed for color-only change.
 - G2 PARTIAL: these renders show the actual material and legible empty state; populated/hidden/negative/light/gesture states remain. G3 NOT TESTED: no independent critique. G4 scoped pass for the exercised controls/persistence only. No DA completion claim.
+
+## 2026-10-31 — timestamp-linked Horizon and observed metal input
+
+Replaced the generic Horizon icon tile/single-line panel with an editorial readout, exact selected timestamp, balance/after-reserve series, data-driven event marks and interval explanation. Previous/next controls provide a gesture alternative; custom chart exposes an adjustable accessibility action. Corrected the false calendar-day-end label. Scenario editor drops translation under Reduce Motion. No MoneyCore arithmetic or store schema changed.
+
+Baseline native capture and changed UI run produced 1/1 pass after correcting a time-dependent test expectation. Video verifies direct light response with fixed amount. The final range-text contrast and overlapping-series note receive build confirmation, without repeating the financial scenario. Snapshot and fixture limitations are recorded in visual-gap-audit. No whole-artistic-acceptance claim.

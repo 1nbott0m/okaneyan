@@ -475,6 +475,53 @@ extension MoneyWiseUserFlowTests {
     }
 
     @MainActor
+    func testPopulatedLivingCardAndHorizonInspection() throws {
+        executionTimeAllowance = 120
+        continueAfterFailure = false
+        let app = XCUIApplication()
+        app.launchArguments.append("--moneywise-p0-ui-fixture")
+        app.launchEnvironment["MONEYWISE_P0_UI_FIXTURE"] = "1"
+        app.launch()
+        XCTAssertTrue(app.buttons["Показать состав свободной суммы"].waitForExistence(timeout: 15))
+        let amount = app.staticTexts.matching(NSPredicate(format: "label BEGINSWITH %@", "Свободно до поступления ")).firstMatch
+        XCTAssertTrue(amount.exists)
+        let initialAmount = amount.label
+        let header = app.staticTexts["ДЕНЕЖНЫЙ ГОРИЗОНТ"]
+        let start = header.coordinate(withNormalizedOffset: CGVector(dx: 0.1, dy: 0.5))
+        let end = header.coordinate(withNormalizedOffset: CGVector(dx: 0.9, dy: 0.5))
+        start.press(forDuration: 0.2, thenDragTo: end, withVelocity: .slow, thenHoldForDuration: 1)
+        XCTAssertEqual(amount.label, initialAmount, "Световой жест не меняет финансовую сумму")
+        let card = XCTAttachment(screenshot: XCUIScreen.main.screenshot())
+        card.name = "Populated Living Card — after light gesture"
+        card.lifetime = .keepAlways
+        add(card)
+        app.buttons["Скрыть суммы"].tap()
+        XCTAssertTrue(app.staticTexts["Свободная сумма скрыта"].waitForExistence(timeout: 5))
+        app.buttons["Показать суммы"].tap()
+        // Re-showing amounts refreshes the time-based Overview estimate. Its exact
+        // kopeck value may legitimately change; the light gesture above is state-only.
+        XCTAssertTrue(amount.waitForExistence(timeout: 5))
+        app.buttons["Горизонт"].tap()
+        XCTAssertTrue(app.navigationBars["Финансовый горизонт"].waitForExistence(timeout: 5))
+        let selectedDate = app.staticTexts["horizon.selectedDate"]
+        XCTAssertTrue(selectedDate.waitForExistence(timeout: 5))
+        let initialDate = selectedDate.label
+        app.buttons["Следующая точка прогноза"].tap()
+        XCTAssertNotEqual(selectedDate.label, initialDate)
+        XCTAssertTrue(app.staticTexts["Поступления в модели"].exists)
+        app.buttons["Предыдущая точка прогноза"].tap()
+        XCTAssertEqual(selectedDate.label, initialDate)
+        let chart = app.descendants(matching: .any).matching(identifier: "horizon.chart").firstMatch
+        XCTAssertTrue(chart.exists)
+        chart.coordinate(withNormalizedOffset: CGVector(dx: 0.65, dy: 0.45)).tap()
+        XCTAssertNotEqual(selectedDate.label, initialDate, "Нажатие графика выбирает момент прогноза")
+        let horizon = XCTAttachment(screenshot: XCUIScreen.main.screenshot())
+        horizon.name = "Financial Horizon — selected timestamp"
+        horizon.lifetime = .keepAlways
+        add(horizon)
+    }
+
+    @MainActor
     func testFinancialHorizonKeepsRangePickerUsableWithoutReliableHistory() throws {
         let app = XCUIApplication()
         app.launch()
