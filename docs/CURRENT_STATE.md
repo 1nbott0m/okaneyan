@@ -47,3 +47,10 @@
 - GitHub delivery: the completed changes are pushed to `codex/moneywise-native-ui`; the user-requested skill installation remains uncommitted. Do not merge `main` without separate approval.
 
 See [requirements status](REQUIREMENTS_STATUS.md), [decisions](DECISIONS.md), and [implementation roadmap](../.agent/tasks/moneywise-integration-and-delivery.md).
+
+## 2026-10-31 product and creative continuation
+
+- Implemented calendar-month budget selection, direct limit editing with prefilled value, and explicit remaining/overspend display. One targeted native acceptance test passed (1/1, 51 seconds): Living Card disclosure remains interactive, next-month budget 7,000→9,000₽ persists after relaunch. Read-only SQLite confirms a single November groceries budget at 900,000 kopecks. New-screen transaction recalculation/deletion not exercised.
+- Implemented `BrushedMetalCardSurface` in the real native Overview: procedural brushed graphite, layered bevel and directional reflection driven only by direct horizontal touch; financial text remains fixed. Native before/after/expanded screenshots retained in `design/research/evidence/2026-10-31/`. Final palette-only rebuild passed, installed/launched with simulator ReduceMotionEnabled=1 and final static surface inspected. New support-text color #D0C8CB has a conservative calculated 4.79:1 contrast against estimated peak surface sRGB .32; not a complete pixel audit. Touch-light gesture, populated financial card, whole-app accessibility, independent critique and physical device remain unverified.
+- Preserved owner creative contract and historical UI-worktree references with six original template stills. `design/research/visual-dna-matrix.md` separates named user sources from 50 agent-research rows and does not convert studied sources into owner approvals. Exact original Mobbin/Dribbble links, unavailable Nimbus/Syntaax imagery and full VISUAL DNA evidence remain incomplete.
+- No repeated P0 run. The earlier unverified debt-edit test extension remains a local draft, excluded from this published acceptance test.

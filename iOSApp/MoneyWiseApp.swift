@@ -1255,10 +1255,14 @@ private struct AccountsOverviewView: View {
                     ForEach(currentMonthBudgets) { budget in
                         if budget.hasValidBudget {
                             let used = monthSpend(for: budget.category)
-                            VStack(alignment: .leading, spacing: 6) {
-                                HStack { Text(budget.category.title); Spacer(); SensitiveAmount(value: "\(Money(kopecks: used).formatted) / \(Money(kopecks: budget.limitKopecks).formatted)").font(AppTypography.amount(12)) }
-                                ProgressView(value: min(1, Double(used) / Double(budget.limitKopecks)))
-                                    .tint(used > budget.limitKopecks ? .red : AppPalette.accent)
+                            NavigationLink {
+                                AddBudgetView(budget: budget)
+                            } label: {
+                                VStack(alignment: .leading, spacing: 6) {
+                                    HStack { Text(budget.category.title); Spacer(); SensitiveAmount(value: "\(Money(kopecks: used).formatted) / \(Money(kopecks: budget.limitKopecks).formatted)").font(AppTypography.amount(12)) }
+                                    ProgressView(value: min(1, Double(used) / Double(budget.limitKopecks)))
+                                        .tint(used > budget.limitKopecks ? .red : AppPalette.accent)
+                                }
                             }
                         } else {
                             Label("\(budget.category.title): бюджет требует исправления", systemImage: "exclamationmark.triangle.fill")
@@ -1269,6 +1273,7 @@ private struct AccountsOverviewView: View {
                         let removed = offsets.map { visibleBudgets[$0] }
                         performDataChange { removed.forEach(context.delete) }
                     }
+                    NavigationLink("Все бюджеты и периоды", destination: BudgetPeriodsView())
                     NavigationLink("Добавить бюджет", destination: AddBudgetView())
                 }
                 Section("Долги") {
@@ -1999,6 +2004,67 @@ private struct AppLockView: View {
     }
 }
 
+/// Procedural surface: no bitmap, timer, sensor access or per-frame idle rendering.
+/// Only reflected light responds to a horizontal touch; the financial face stays fixed.
+private struct BrushedMetalCardSurface: View {
+    let touch: CGPoint?
+    private let shape = RoundedRectangle(cornerRadius: 26, style: .continuous)
+
+    var body: some View {
+        GeometryReader { geometry in
+            let lightX = min(1, max(0, (touch?.x ?? geometry.size.width * 0.72) / max(1, geometry.size.width)))
+            ZStack {
+                shape.fill(LinearGradient(stops: [
+                    .init(color: Color(white: 0.20), location: 0),
+                    .init(color: Color(white: 0.11), location: 0.17),
+                    .init(color: Color(white: 0.15), location: 0.43),
+                    .init(color: Color(white: 0.085), location: 0.67),
+                    .init(color: Color(white: 0.19), location: 0.85),
+                    .init(color: Color(white: 0.10), location: 1)
+                ], startPoint: .topLeading, endPoint: .bottomTrailing))
+
+                // Fine machining catches light in short, irregular horizontal grains.
+                Canvas { context, size in
+                    for row in 0..<Int(size.height * 1.5) {
+                        let y = CGFloat(row) / 1.5
+                        let seed = (row * 73 + 19) % 101
+                        let start = CGFloat(seed) / 101 * size.width * 0.28
+                        var grain = Path()
+                        grain.move(to: CGPoint(x: start, y: y))
+                        grain.addLine(to: CGPoint(x: size.width - start * 0.4, y: y - 0.35))
+                        context.stroke(grain, with: .color((row % 3 == 0 ? Color.white : Color.black)
+                            .opacity(row % 3 == 0 ? 0.045 : 0.10)), lineWidth: 0.35)
+                    }
+                }
+                .blendMode(.overlay)
+
+                // Broad anisotropic reflection is separated from the text's matte face.
+                LinearGradient(stops: [
+                    .init(color: .clear, location: 0),
+                    .init(color: .clear, location: 0.43),
+                    .init(color: .white.opacity(0.035), location: 0.49),
+                    .init(color: .white.opacity(0.14), location: 0.52),
+                    .init(color: .white.opacity(0.025), location: 0.56),
+                    .init(color: .clear, location: 0.67),
+                    .init(color: .clear, location: 1)
+                ], startPoint: UnitPoint(x: lightX - 0.55, y: 0),
+                   endPoint: UnitPoint(x: lightX + 0.6, y: 1))
+                .blendMode(.screen)
+
+                // A machined rim has a lit bevel, dark return and fine inner edge.
+                shape.strokeBorder(LinearGradient(colors: [
+                    Color(white: 0.68), Color(white: 0.28), Color(white: 0.08),
+                    Color(white: 0.46), Color(white: 0.22)
+                ], startPoint: .topLeading, endPoint: .bottomTrailing), lineWidth: 1.6)
+                shape.inset(by: 2).stroke(Color.black.opacity(0.7), lineWidth: 1)
+                shape.inset(by: 3).stroke(LinearGradient(colors: [.white.opacity(0.10), .clear, .white.opacity(0.025)],
+                    startPoint: .top, endPoint: .bottom), lineWidth: 0.5)
+            }
+            .clipShape(shape)
+        }
+    }
+}
+
 private struct AvailableBalanceCard: View {
     let amount: String
     let explanation: String
@@ -2208,18 +2274,10 @@ private struct AvailableBalanceCard: View {
         .padding(20)
         .frame(maxWidth: .infinity, alignment: .leading)
         .background {
-            ZStack(alignment: .leading) {
-                RoundedRectangle(cornerRadius: 26, style: .continuous)
-                    .fill(AppPalette.hero)
-                Capsule(style: .continuous)
-                    .fill(AppPalette.heroAccent.opacity(0.82))
-                    .frame(width: 2, height: 42)
-                    .padding(.leading, 1)
-                    .accessibilityHidden(true)
-            }
-            .clipShape(RoundedRectangle(cornerRadius: 26, style: .continuous))
+            BrushedMetalCardSurface(touch: reduceMotion ? nil : materialTouch)
+                .allowsHitTesting(false)
+                .accessibilityHidden(true)
         }
-        .overlay(RoundedRectangle(cornerRadius: 26, style: .continuous).stroke(AppPalette.metalEdge.opacity(0.34), lineWidth: 1))
         .overlay {
             GeometryReader { geometry in
                 if !reduceMotion, let materialTouch {
@@ -3866,18 +3924,132 @@ private struct EditPlanItemView: View {
     }
 }
 
+private struct BudgetPeriodsView: View {
+    @State private var month = Calendar.current.dateInterval(of: .month, for: .now)?.start ?? .now
+
+    var body: some View {
+        List {
+            Section("Период бюджета") {
+                HStack {
+                    Button { moveMonth(-1) } label: { Image(systemName: "chevron.left") }
+                        .accessibilityLabel("Предыдущий месяц")
+                    Spacer()
+                    Text(month.formatted(.dateTime.month(.wide).year()))
+                        .accessibilityIdentifier("budget.selectedMonth")
+                    Spacer()
+                    Button { moveMonth(1) } label: { Image(systemName: "chevron.right") }
+                        .accessibilityLabel("Следующий месяц")
+                }
+                .buttonStyle(.borderless)
+            }
+            BudgetMonthRows(month: month).id(month)
+            Section {
+                NavigationLink("Добавить бюджет", destination: AddBudgetView(periodStart: month))
+                Text("Учитываются проведённые расходы по включённым счетам и ручные операции без счёта. Внутренние переводы исключены. Будущие операции не считаются расходами.")
+                    .font(.footnote).foregroundStyle(.secondary)
+            }
+        }
+        .navigationTitle("Бюджеты")
+    }
+
+    private func moveMonth(_ offset: Int) {
+        if let next = Calendar.current.date(byAdding: .month, value: offset, to: month) { month = next }
+    }
+}
+
+private struct BudgetMonthRows: View {
+    @Environment(\.modelContext) private var context
+    @Query private var budgets: [StoredBudget]
+    @Query private var transactions: [StoredTransaction]
+    @Query private var accounts: [StoredAccount]
+    @State private var saveError: String?
+    let month: Date
+    let end: Date
+
+    init(month: Date) {
+        let interval = Calendar.current.dateInterval(of: .month, for: month)
+        let start = interval?.start ?? month
+        let end = interval?.end ?? month
+        self.month = start
+        self.end = end
+        _budgets = Query(filter: #Predicate<StoredBudget> { $0.periodStart >= start && $0.periodStart < end })
+        // Include earlier purchases so linked refunds retain the same net-spend semantics as Overview.
+        _transactions = Query(filter: #Predicate<StoredTransaction> { $0.date < end })
+    }
+
+    private func spent(for category: Category) -> Money {
+        let includedIDs = Set(accounts.filter(\.included).map(\.id))
+        let rows = transactions.filter {
+            ScheduledSettlementPolicy.sourceAccountIsIncluded($0.sourceAccountID, includedAccountIDs: includedIDs)
+        }.map {
+            Transaction(id: $0.id, date: $0.date, merchant: $0.merchant, amount: $0.amount,
+                        kind: $0.kind, category: $0.category, isInternalTransfer: $0.internalTransfer,
+                        sourceID: $0.sourceID, status: $0.status,
+                        providerTransactionID: $0.providerTransactionID,
+                        refundOfProviderTransactionID: $0.refundOfProviderTransactionID,
+                        refundOfTransactionID: $0.refundOfTransactionID)
+        }
+        return SpendingAnalytics.totalOutflow(rows, from: month, to: end, category: category, asOf: .now)
+    }
+
+    var body: some View {
+        Section("Бюджеты категорий") {
+            if budgets.isEmpty { Text("На выбранный месяц бюджетов нет.").foregroundStyle(.secondary) }
+            ForEach(budgets) { budget in
+                NavigationLink {
+                    AddBudgetView(budget: budget)
+                } label: {
+                    VStack(alignment: .leading, spacing: 6) {
+                        Text(budget.category.title)
+                        if budget.hasValidBudget {
+                            let used = spent(for: budget.category)
+                            let remaining = Money(kopecks: budget.limitKopecks) - used
+                            SensitiveAmount(value: "Потрачено \(used.formatted) из \(Money(kopecks: budget.limitKopecks).formatted)")
+                            SensitiveAmount(value: remaining < .zero
+                                ? "Перерасход \((.zero - remaining).formatted)"
+                                : "Осталось \(remaining.formatted)")
+                                .foregroundStyle(remaining < .zero ? .red : .secondary)
+                        } else {
+                            Text("Лимит требует исправления").foregroundStyle(.orange)
+                        }
+                    }
+                }
+            }
+            .onDelete { offsets in
+                let removed = offsets.map { budgets[$0] }
+                do {
+                    try context.transaction { removed.forEach(context.delete) }
+                } catch { context.rollback(); saveError = error.localizedDescription }
+            }
+        }
+        .saveFailureAlert($saveError)
+    }
+}
+
 private struct AddBudgetView: View {
     @Environment(\.modelContext) private var context
     @Environment(\.dismiss) private var dismiss
     @Query private var budgets: [StoredBudget]
-    @State private var category: Category = .groceries
+    private let existingBudget: StoredBudget?
+    @State private var month: Date
+    @State private var category: Category
     @State private var amount = ""
     @State private var saveError: String?
-    private var currentMonthStart: Date {
-        Calendar.current.dateInterval(of: .month, for: .now)?.start ?? .now
+    init(periodStart: Date = .now, budget: StoredBudget? = nil) {
+        existingBudget = budget
+        _month = State(initialValue: budget?.periodStart ?? periodStart)
+        _category = State(initialValue: budget?.category ?? .groceries)
+    }
+    private var selectedMonthStart: Date {
+        Calendar.current.dateInterval(of: .month, for: month)?.start ?? month
+    }
+    private func loadLimit() {
+        amount = matchingBudgets.first.map {
+            NSDecimalNumber(decimal: Money(kopecks: $0.limitKopecks).decimalRubles).stringValue
+        } ?? ""
     }
     private var matchingBudgets: [StoredBudget] {
-        guard let month = Calendar.current.dateInterval(of: .month, for: currentMonthStart) else { return [] }
+        guard let month = Calendar.current.dateInterval(of: .month, for: selectedMonthStart) else { return [] }
         return budgets.filter { $0.category == category && month.contains($0.periodStart) }
     }
     var body: some View {
@@ -3885,6 +4057,11 @@ private struct AddBudgetView: View {
             Picker("Категория", selection: $category) {
                 ForEach(Category.allCases.filter(\.supportsPurchaseClassification)) { Text($0.title).tag($0) }
             }
+            .disabled(existingBudget != nil)
+            DatePicker("Месяц бюджета", selection: $month, displayedComponents: .date)
+                .disabled(existingBudget != nil)
+            Text("Лимит действует на весь выбранный календарный месяц.")
+                .font(.footnote).foregroundStyle(.secondary)
             TextField("Лимит на месяц, ₽", text: $amount).keyboardType(.decimalPad)
             if !matchingBudgets.isEmpty {
                 Text("Для этой категории уже есть бюджет. Сохранение заменит его лимит на этот месяц.")
@@ -3892,6 +4069,9 @@ private struct AddBudgetView: View {
             }
         }
         .navigationTitle(matchingBudgets.isEmpty ? "Новый бюджет" : "Изменить бюджет")
+        .onAppear(perform: loadLimit)
+        .onChange(of: category) { _, _ in loadLimit() }
+        .onChange(of: month) { _, _ in loadLimit() }
         .saveFailureAlert($saveError)
         .toolbar { ToolbarItem(placement: .confirmationAction) { Button("Сохранить") { save() }.disabled(amount.isEmpty) } }
     }
@@ -3908,7 +4088,7 @@ private struct AddBudgetView: View {
                     budget.limitKopecks = limit.kopecks
                     existing.dropFirst().forEach(context.delete)
                 } else {
-                    context.insert(StoredBudget(category: category, limit: limit, periodStart: currentMonthStart))
+                    context.insert(StoredBudget(category: category, limit: limit, periodStart: selectedMonthStart))
                 }
             }
             dismiss()

@@ -16,7 +16,7 @@
 | Rose deep / focus | `#805D66` | `#EFA8BE` | Focus and small accent |
 | Hero surface | `#171516` | `#1D1A1B` | Living Card / emphasized money context |
 | Hero ink | `#F6F0F2` | `#F6F0F2` | Text and amounts on the dark Living Card |
-| Hero muted | `#B5A9AD` | `#B5A9AD` | Supporting copy on the dark Living Card |
+| Hero muted | `#D0C8CB` | `#D0C8CB` | Supporting copy on the dark Living Card |
 | Hero divider | `#393235` | `#393235` | Internal rules and timeline rail on the card |
 | Hero accent | `#EFA8BE` | `#EFA8BE` | Timeline and primary card marker |
 | Metal edge | `#766A6E` | `#766A6E` | Restrained static edge on the Living Card only |
@@ -40,3 +40,7 @@
 - Safe-area env values are wired into mobile and modal layout but require physical iOS validation.
 - Native Overview now uses the shared palette tokens and an expandable available-balance card with matched-geometry amount placement, spring expansion, and an opacity fallback for Reduce Motion. Runtime behavior remains `NOT VERIFIED` until built and opened on iOS.
 - The browser review preview now demonstrates an expandable, staggered balance breakdown using clearly labeled synthetic figures. It itemizes manual balance, protected reserve, goal reserve, confirmed near-term obligations and an ordinary-spend estimate, and the displayed example reconciles to 42,500 ₽. These values are not linked to the native store.
+
+## Native flagship material — 2026-10-31
+
+The owner creative contract permits a developed metal Living Card within D1/A. `BrushedMetalCardSurface` uses procedural machining, directional reflection and a layered bevel instead of the flat hero fill. Numeric text does not move with touch. Reduce Motion removes touch lighting and keeps the neutral composed still. No timeline/timer or proprietary texture is used. Hero supporting text is raised to `#D0C8CB`; the conservative surface-peak estimate of sRGB 0.32 gives 4.79:1 against this text (analytical bound, not an exhaustive rendered contrast audit). Web review surfaces retain their existing material until explicitly updated; parity is not claimed.

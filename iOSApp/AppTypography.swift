@@ -15,7 +15,7 @@ enum AppPalette {
     static let rosePale = adaptive(light: 0xF2E1E6, dark: 0x34252A)
     static let hero = adaptive(light: 0x171516, dark: 0x1D1A1B)
     static let heroInk = adaptive(light: 0xF6F0F2, dark: 0xF6F0F2)
-    static let heroMuted = adaptive(light: 0xB5A9AD, dark: 0xB5A9AD)
+    static let heroMuted = adaptive(light: 0xD0C8CB, dark: 0xD0C8CB)
     static let heroLine = adaptive(light: 0x393235, dark: 0x393235)
     static let heroAccent = adaptive(light: 0xEFA8BE, dark: 0xEFA8BE)
     static let metalEdge = adaptive(light: 0x766A6E, dark: 0x766A6E)

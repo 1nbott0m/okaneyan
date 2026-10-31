@@ -57,3 +57,10 @@
 - **Before/after:** `outputs/moneywise-d1-label-before-{dark,light}-{390,1440}.png` → `outputs/moneywise-d1-label-after-{dark,light}-{390,1440}.png`.
 - **Verify:** `work/pw-audit/capture-d1-decorative-label.mjs` confirms no pseudo-label at all four view/theme states, keeps “Следующее поступление” + “ожидается” and 7 500 ₽, no browser errors. Full design matrix and syntax checks pass.
 - **Limit:** internal critique only; no independent G3. No native code change; iOS runtime still unverified.
+
+## 2026-10-31 — native material and period-budget acceptance
+
+- Owner contract saved verbatim; reference archives/stills restored without altering UI worktree. Current/before screenshot is the actual iPhone 18 Pro Simulator empty state, not web demo arithmetic.
+- Implemented procedural graphite metal with grain, light band and bevel; support text raised for contrast. Existing static and disclosure layouts preserved. Reviewed native collapsed before/after and final Reduce Motion still; expanded acceptance capture retained.
+- Native app builds and launches. One targeted UI acceptance passed 1/1 (51s): expand/collapse and future-month budget edit/relaunch. Final support-color adjustment was rebuilt/launched after that test; no second UI run needed for color-only change.
+- G2 PARTIAL: these renders show the actual material and legible empty state; populated/hidden/negative/light/gesture states remain. G3 NOT TESTED: no independent critique. G4 scoped pass for the exercised controls/persistence only. No DA completion claim.

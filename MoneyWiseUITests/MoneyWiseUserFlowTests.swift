@@ -423,6 +423,58 @@ extension MoneyWiseUserFlowTests {
     }
 
     @MainActor
+    func testLivingCardDisclosureAndBudgetPeriodEditing() throws {
+        executionTimeAllowance = 180
+        continueAfterFailure = false
+        let app = XCUIApplication()
+        app.launch()
+        let reveal = app.buttons["Показать состав свободной суммы"]
+        XCTAssertTrue(reveal.waitForExistence(timeout: 15))
+        reveal.tap()
+        let collapse = app.buttons["Скрыть состав свободной суммы"]
+        XCTAssertTrue(collapse.waitForExistence(timeout: 5))
+        let materialEvidence = XCTAttachment(screenshot: XCUIScreen.main.screenshot())
+        materialEvidence.name = "Living Card material expanded — native"
+        materialEvidence.lifetime = .keepAlways
+        add(materialEvidence)
+        collapse.tap()
+        XCTAssertTrue(reveal.waitForExistence(timeout: 5))
+
+        app.tabBars.buttons["План"].tap()
+        let periods = app.buttons["Все бюджеты и периоды"]
+        for _ in 0..<5 where !periods.isHittable { app.swipeUp() }
+        XCTAssertTrue(periods.waitForExistence(timeout: 5))
+        periods.tap()
+        XCTAssertTrue(app.navigationBars["Бюджеты"].waitForExistence(timeout: 5))
+        app.buttons["Следующий месяц"].tap()
+        let monthLabel = app.staticTexts["budget.selectedMonth"].label
+        app.buttons["Добавить бюджет"].tap()
+        let limit = app.textFields["Лимит на месяц, ₽"]
+        XCTAssertTrue(limit.waitForExistence(timeout: 5))
+        limit.tap()
+        limit.typeText("7000")
+        app.buttons["Сохранить"].tap()
+        let groceries = app.buttons.containing(.staticText, identifier: "Продукты").firstMatch
+        XCTAssertTrue(groceries.waitForExistence(timeout: 5))
+        groceries.tap()
+        XCTAssertTrue(app.navigationBars["Изменить бюджет"].waitForExistence(timeout: 5))
+        XCTAssertEqual(limit.value as? String, "7000")
+        limit.tap()
+        limit.typeText(String(repeating: XCUIKeyboardKey.delete.rawValue, count: 4) + "9000")
+        app.buttons["Сохранить"].tap()
+        app.terminate()
+        app.launch()
+        app.tabBars.buttons["План"].tap()
+        for _ in 0..<5 where !periods.isHittable { app.swipeUp() }
+        periods.tap()
+        app.buttons["Следующий месяц"].tap()
+        XCTAssertEqual(app.staticTexts["budget.selectedMonth"].label, monthLabel)
+        groceries.tap()
+        XCTAssertTrue(limit.waitForExistence(timeout: 5))
+        XCTAssertEqual(limit.value as? String, "9000", "Лимит выбранного месяца сохраняется после редактирования и перезапуска")
+    }
+
+    @MainActor
     func testFinancialHorizonKeepsRangePickerUsableWithoutReliableHistory() throws {
         let app = XCUIApplication()
         app.launch()
