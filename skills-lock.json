@@ -49,6 +49,12 @@
       "skillPath": "skills/ios-simulator/SKILL.md",
       "computedHash": "992f700cacced89d430e8cca5b0d95f12f16c1b8c3aa06bf419d4ab61509609f"
     },
+    "mobile-ios-design": {
+      "source": "wshobson/agents",
+      "sourceType": "github",
+      "skillPath": "plugins/ui-design/skills/mobile-ios-design/SKILL.md",
+      "computedHash": "3902f919488d8ddc983e157bbcd5f16b739b84eeaab57002bf52b7f9601ed6ad"
+    },
     "swift-api-design-guidelines": {
       "source": "dpearson2699/swift-ios-skills",
       "sourceType": "github",
@@ -102,6 +108,12 @@
       "sourceType": "github",
       "skillPath": "skills/swiftlint/SKILL.md",
       "computedHash": "e2dfb4b34fb3d5051a9eb7842ce3f3db21f8caa43da395354383fcf6248c7aa1"
+    },
+    "swiftui-animation": {
+      "source": "dpearson2699/swift-ios-skills",
+      "sourceType": "github",
+      "skillPath": "skills/swiftui-animation/SKILL.md",
+      "computedHash": "af57bc4f78457178fdadb7a78728baf55aa88d12fcfa0b5bd25cbdbc8dcee3b0"
     },
     "swiftui-layout-components": {
       "source": "dpearson2699/swift-ios-skills",
