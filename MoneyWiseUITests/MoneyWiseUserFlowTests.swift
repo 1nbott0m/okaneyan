@@ -583,6 +583,94 @@ extension MoneyWiseUserFlowTests {
     }
 
     @MainActor
+    func testReserveEditingReleaseAndUndo() throws {
+        executionTimeAllowance = 180
+        continueAfterFailure = false
+        let app = XCUIApplication()
+        app.launchArguments.append("--moneywise-p0-ui-fixture")
+        app.launchEnvironment["MONEYWISE_P0_UI_FIXTURE"] = "1"
+        app.launch()
+        XCTAssertTrue(app.tabBars.buttons["План"].waitForExistence(timeout: 15))
+        app.tabBars.buttons["План"].tap()
+        app.buttons["Настройки приложения"].tap()
+        let minimum = app.textFields["Не опускаться ниже, ₽"]
+        for _ in 0..<5 where !minimum.isHittable { app.swipeUp() }
+        minimum.tap()
+        minimum.typeText(String(repeating: XCUIKeyboardKey.delete.rawValue, count: (minimum.value as? String ?? "").count) + "1000")
+        app.buttons["Сохранить"].tap()
+        app.tabBars.buttons["Обзор"].tap()
+        XCTAssertTrue(app.buttons["Резервы"].waitForExistence(timeout: 5))
+        app.buttons["Резервы"].tap()
+        XCTAssertTrue(app.navigationBars["Резервы"].waitForExistence(timeout: 5))
+        let title = "Поездка · проверка"
+        let row = app.buttons.containing(.staticText, identifier: title).firstMatch
+        if app.staticTexts[title].exists {
+            for _ in 0..<6 where !row.isHittable { app.swipeUp() }
+            row.tap()
+        } else {
+            let create = app.buttons["Создать резерв"]
+            for _ in 0..<6 where !create.isHittable { app.swipeUp() }
+            create.tap()
+            let name = app.textFields["Название, например «Отпуск»"]
+            XCTAssertTrue(name.waitForExistence(timeout: 5))
+            name.tap()
+            name.typeText(title)
+        }
+        let amount = app.textFields["Сумма, ₽"]
+        XCTAssertTrue(amount.waitForExistence(timeout: 5))
+        amount.tap()
+        amount.typeText(String(repeating: XCUIKeyboardKey.delete.rawValue, count: (amount.value as? String ?? "").count) + "2000")
+        if app.navigationBars.buttons["Создать"].exists { app.navigationBars.buttons["Создать"].tap() }
+        else { app.navigationBars.buttons["Сохранить"].tap() }
+        XCTAssertTrue(app.staticTexts[title].waitForExistence(timeout: 5))
+        let total = app.staticTexts["reserve.protectedTotal"]
+        let outside = app.staticTexts["reserve.outsideReserves"]
+        XCTAssertTrue(total.waitForExistence(timeout: 5))
+        XCTAssertEqual(total.label.filter { $0.isNumber }, "300000")
+        XCTAssertEqual(outside.label.filter { $0.isNumber }, "700000")
+        for _ in 0..<6 where !row.isHittable { app.swipeUp() }
+        row.tap()
+        XCTAssertTrue(amount.waitForExistence(timeout: 5))
+        amount.tap()
+        amount.typeText(String(repeating: XCUIKeyboardKey.delete.rawValue, count: 4) + "1000")
+        app.navigationBars.buttons["Сохранить"].tap()
+        let undo = app.buttons["reserve.undo"]
+        XCTAssertTrue(undo.waitForExistence(timeout: 5))
+        XCTAssertTrue(undo.isHittable, "Отмена доступна сверху независимо от нижней панели")
+        XCTAssertEqual(total.label.filter { $0.isNumber }, "200000")
+        XCTAssertEqual(outside.label.filter { $0.isNumber }, "800000")
+        let partial = XCTAttachment(screenshot: XCUIScreen.main.screenshot())
+        partial.name = "Spending Lock — partial release with reachable Undo"
+        partial.lifetime = .keepAlways
+        add(partial)
+        undo.tap()
+        XCTAssertEqual(total.label.filter { $0.isNumber }, "300000")
+        for _ in 0..<6 where !row.isHittable { app.swipeUp() }
+        row.tap()
+        let release = app.buttons["Освободить весь резерв"]
+        for _ in 0..<5 where !release.isHittable { app.swipeUp() }
+        XCTAssertTrue(release.isHittable)
+        release.tap()
+        app.buttons["Освободить резерв"].tap()
+        XCTAssertTrue(undo.waitForExistence(timeout: 5))
+        XCTAssertFalse(app.staticTexts[title].exists)
+        XCTAssertEqual(total.label.filter { $0.isNumber }, "100000")
+        undo.tap()
+        XCTAssertTrue(app.staticTexts[title].waitForExistence(timeout: 5))
+        XCTAssertEqual(total.label.filter { $0.isNumber }, "300000")
+        app.terminate()
+        app.launch()
+        app.buttons["Резервы"].tap()
+        XCTAssertTrue(app.navigationBars["Резервы"].waitForExistence(timeout: 5))
+        XCTAssertTrue(total.waitForExistence(timeout: 5))
+        XCTAssertEqual(total.label.filter { $0.isNumber }, "300000", "Восстановленный резерв сохраняется после перезапуска")
+        let evidence = XCTAttachment(screenshot: XCUIScreen.main.screenshot())
+        evidence.name = "Spending Lock — tactile allocation after restore and relaunch"
+        evidence.lifetime = .keepAlways
+        add(evidence)
+    }
+
+    @MainActor
     func testFinancialHorizonKeepsRangePickerUsableWithoutReliableHistory() throws {
         let app = XCUIApplication()
         app.launch()

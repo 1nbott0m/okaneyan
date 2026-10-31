@@ -1,0 +1,15 @@
+{
+  "fixtureOnly": true,
+  "accountBalancesKopecks": [
+    1000000
+  ],
+  "transactionCount": 10,
+  "planCount": 0,
+  "minimumReserveKopecks": 100000,
+  "namedReserves": [
+    {
+      "title": "Поездка · проверка",
+      "amountKopecks": 200000
+    }
+  ]
+}

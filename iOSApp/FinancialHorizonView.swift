@@ -606,6 +606,7 @@ struct ProtectedReservesView: View {
     @State private var isAdding = false
     @State private var undoRecord: ProtectedReserveUndo?
     @State private var errorMessage: String?
+    @State private var commitPulse = 0
 
     private var namedTotal: Money { protectedTotals.named }
     private var protectedTotal: Money { minimumReserve + protectedTotals.named + protectedTotals.goals }
@@ -620,15 +621,16 @@ struct ProtectedReservesView: View {
         ScrollView {
             VStack(alignment: .leading, spacing: 18) {
                 VStack(alignment: .leading, spacing: 6) {
-                    Image(systemName: "lock.shield.fill")
-                        .font(.system(size: 22, weight: .semibold)).foregroundStyle(.white)
-                        .frame(width: 64, height: 64)
-                        .background(AppPalette.hero, in: RoundedRectangle(cornerRadius: 20, style: .continuous))
-                        .modifier(FeatureMatchedGeometryModifier(id: "reserve-mark", namespace: namespace, enabled: !reduceMotion))
-                        .padding(.bottom, 6)
+                    HStack(spacing: 8) {
+                        Image(systemName: "lock.shield.fill")
+                            .modifier(FeatureMatchedGeometryModifier(id: "reserve-mark", namespace: namespace, enabled: !reduceMotion))
+                        Text("ЗАЩИЩЕНО В ПЛАНЕ").tracking(1.4)
+                    }
+                    .font(AppTypography.detail(12, weight: .semibold)).foregroundStyle(AppPalette.softAccent)
+                    .padding(.bottom, 8)
                     Text("Оставь часть денег в покое")
                         .font(AppTypography.display(29, weight: .bold))
-                    Text("Создай отдельные резервы под свои планы. Это внутреннее распределение денег, приложение не блокирует средства в банке. Если сумма уже записана как цель или плановый платёж, привяжи резерв к ней — расчёт не вычтет её дважды.")
+                    Text("Резервы исключаются из свободных денег по плану. В банке деньги остаются на счёте.")
                         .font(.subheadline).foregroundStyle(.secondary)
                 }
                 balanceCard
@@ -638,6 +640,13 @@ struct ProtectedReservesView: View {
                         .padding(14).frame(maxWidth: .infinity, alignment: .leading)
                         .background(Color.orange.opacity(0.10), in: RoundedRectangle(cornerRadius: 16, style: .continuous))
                 }
+                Button { isAdding = true } label: {
+                    Label("Создать резерв", systemImage: "plus")
+                        .font(AppTypography.ui(17, weight: .bold)).foregroundStyle(AppPalette.hero)
+                        .frame(maxWidth: .infinity).padding(15)
+                        .background(AppPalette.accent, in: RoundedRectangle(cornerRadius: 17, style: .continuous))
+                }
+                .buttonStyle(.plain)
                 VStack(alignment: .leading, spacing: 12) {
                     HStack {
                         Text("Твои конверты").font(AppTypography.ui(20, weight: .semibold))
@@ -671,13 +680,6 @@ struct ProtectedReservesView: View {
                 .padding(18)
                 .background(AppPalette.surface, in: RoundedRectangle(cornerRadius: 22, style: .continuous))
                 .overlay(RoundedRectangle(cornerRadius: 22, style: .continuous).stroke(AppPalette.line, lineWidth: 1))
-                Button { isAdding = true } label: {
-                    Label("Создать резерв", systemImage: "plus")
-                        .font(AppTypography.ui(17, weight: .bold)).foregroundStyle(.white)
-                        .frame(maxWidth: .infinity).padding(15)
-                        .background(AppPalette.accent, in: RoundedRectangle(cornerRadius: 17, style: .continuous))
-                }
-                .buttonStyle(.plain)
                 Text("Изменения здесь влияют на расчёт свободных денег и прогноз. Баланс счёта и история операций не меняются.")
                     .font(.footnote).foregroundStyle(.secondary)
             }
@@ -699,11 +701,12 @@ struct ProtectedReservesView: View {
             ProtectedReserveEditor(title: "Резерв", initialTitle: reserve.title, initialAmount: reserve.amount,
                 initialGoalID: reserve.linkedGoalID, initialPlanItemID: reserve.linkedPlanItemID,
                 initialOccurrenceDate: reserve.linkedOccurrenceDate ?? .now,
-                goals: goals, planItems: planItems, saveTitle: "Сохранить") { title, amount, goalID, planID, occurrenceDate in
+                goals: goals, planItems: planItems, saveTitle: "Сохранить", onRelease: { delete(reserve) }) { title, amount, goalID, planID, occurrenceDate in
                 update(reserve, title: title, amount: amount, goalID: goalID, planID: planID, occurrenceDate: occurrenceDate)
             }
         }
-        .safeAreaInset(edge: .bottom) {
+        .sensoryFeedback(.impact(weight: .light, intensity: 0.55), trigger: commitPulse)
+        .safeAreaInset(edge: .top, spacing: 0) {
             if let undoRecord {
                 HStack(spacing: 12) {
                     Text(undoRecord.wasDeleted ? "Резерв удалён" : "Сумма резерва изменена")
@@ -711,11 +714,14 @@ struct ProtectedReservesView: View {
                     Spacer()
                     Button("Отменить") { undo(undoRecord) }
                         .font(.subheadline.weight(.bold)).foregroundStyle(AppPalette.softAccent)
+                        .frame(minHeight: 44)
+                        .accessibilityIdentifier("reserve.undo")
                 }
-                .padding(.horizontal, 18).padding(.vertical, 14)
-                .background(AppPalette.hero, in: Capsule())
-                .padding(.horizontal, 16).padding(.bottom, 8)
-                .transition(reduceMotion ? .opacity : .move(edge: .bottom).combined(with: .opacity))
+                .padding(.horizontal, 18).padding(.vertical, 4)
+                .background(AppPalette.hero, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
+                .overlay(RoundedRectangle(cornerRadius: 14, style: .continuous).stroke(AppPalette.metalEdge.opacity(0.5), lineWidth: 1))
+                .padding(.horizontal, 16).padding(.vertical, 8)
+                .transition(reduceMotion ? .identity : .move(edge: .top).combined(with: .opacity))
             }
         }
         .alert("Не удалось сохранить резерв", isPresented: Binding(get: { errorMessage != nil }, set: { if !$0 { errorMessage = nil } })) {
@@ -724,40 +730,73 @@ struct ProtectedReservesView: View {
     }
 
     private var balanceCard: some View {
-        VStack(alignment: .leading, spacing: 14) {
+        VStack(alignment: .leading, spacing: 16) {
             HStack(alignment: .firstTextBaseline) {
-                VStack(alignment: .leading, spacing: 4) {
-                    Text("Всего защищено").font(.subheadline).foregroundStyle(.white.opacity(0.72))
+                VStack(alignment: .leading, spacing: 5) {
+                    Text("ВСЕГО ЗАЩИЩЕНО").font(AppTypography.detail(12, weight: .semibold)).tracking(1.5)
+                        .foregroundStyle(AppPalette.heroMuted)
                     FinanceSensitiveAmount(value: protectedTotal.formatted)
-                        .font(AppTypography.amount(30, weight: .semibold)).foregroundStyle(.white)
+                        .font(AppTypography.amount(32, weight: .semibold)).foregroundStyle(AppPalette.heroInk)
+                        .accessibilityIdentifier("reserve.protectedTotal")
                 }
-                Spacer()
-                Image(systemName: "lock.shield.fill").font(.system(size: 22)).foregroundStyle(AppPalette.softAccent)
+                Spacer(minLength: 8)
+                Image(systemName: "lock.fill").font(.system(size: 20, weight: .medium))
+                    .foregroundStyle(AppPalette.softAccent).accessibilityHidden(true)
+            }
+            ReserveAllocationRail(balance: balance, amounts: [minimumReserve, namedTotal, protectedTotals.goals])
+                .frame(height: 54)
+                .animation(reduceMotion ? nil : .spring(response: 0.3, dampingFraction: 0.9), value: commitPulse)
+                .accessibilityHidden(true)
+            ViewThatFits(in: .horizontal) {
+                HStack(alignment: .top) {
+                    reserveBreakdown("Минимум", value: minimumReserve, color: AppPalette.heroMuted)
+                    Spacer()
+                    reserveBreakdown("Конверты", value: namedTotal, color: AppPalette.softAccent)
+                    Spacer()
+                    reserveBreakdown("Цели", value: protectedTotals.goals, color: .white)
+                }
+                VStack(alignment: .leading, spacing: 12) {
+                    reserveBreakdown("Минимум", value: minimumReserve, color: AppPalette.heroMuted)
+                    reserveBreakdown("Конверты", value: namedTotal, color: AppPalette.softAccent)
+                    reserveBreakdown("Цели", value: protectedTotals.goals, color: .white)
+                }
+            }
+            Rectangle().fill(AppPalette.heroLine).frame(height: 1)
+            HStack {
+                Text("Баланс счетов").font(.footnote).foregroundStyle(AppPalette.heroMuted)
+                Spacer(minLength: 8)
+                FinanceSensitiveAmount(value: balance.formatted)
+                    .font(AppTypography.amount(15, weight: .semibold)).foregroundStyle(AppPalette.heroInk)
             }
             HStack {
-                reserveBreakdown("Минимум", value: minimumReserve)
-                Spacer()
-                reserveBreakdown("Конверты", value: namedTotal)
-                Spacer()
-                reserveBreakdown("Цели", value: protectedTotals.goals)
+                Text("Вне резервов").font(.footnote).foregroundStyle(AppPalette.heroMuted)
+                Spacer(minLength: 8)
+                FinanceSensitiveAmount(value: max(.zero, balance - protectedTotal).formatted)
+                    .font(AppTypography.amount(17, weight: .semibold)).foregroundStyle(AppPalette.heroInk)
+                    .accessibilityIdentifier("reserve.outsideReserves")
             }
-            Rectangle().fill(.white.opacity(0.12)).frame(height: 1)
-            HStack {
-                Text("Баланс счетов").font(.footnote).foregroundStyle(.white.opacity(0.65))
-                Spacer()
-                FinanceSensitiveAmount(value: balance.formatted).font(AppTypography.amount(13, weight: .semibold)).foregroundStyle(.white)
-            }
+            Text("До учёта будущих платежей и обычных расходов.")
+                .font(.caption).foregroundStyle(AppPalette.heroMuted)
         }
-        .padding(19)
-        .background(AppPalette.hero, in: RoundedRectangle(cornerRadius: 24, style: .continuous))
-        .overlay(RoundedRectangle(cornerRadius: 24, style: .continuous).stroke(AppPalette.softAccent.opacity(0.22), lineWidth: 1))
+        .padding(20)
+        .background(LinearGradient(colors: [Color(white: 0.18), AppPalette.hero, Color(white: 0.075)],
+                                   startPoint: .topLeading, endPoint: .bottomTrailing),
+                    in: RoundedRectangle(cornerRadius: 22, style: .continuous))
+        .overlay(RoundedRectangle(cornerRadius: 22, style: .continuous)
+            .stroke(LinearGradient(colors: [AppPalette.metalHighlight.opacity(0.65), .black, AppPalette.metalEdge],
+                                   startPoint: .topLeading, endPoint: .bottomTrailing), lineWidth: 1))
     }
 
-    private func reserveBreakdown(_ title: String, value: Money) -> some View {
-        VStack(alignment: .leading, spacing: 4) {
-            Text(title).font(.caption2).foregroundStyle(.white.opacity(0.55))
-            FinanceSensitiveAmount(value: value.formatted).font(AppTypography.amount(12, weight: .semibold)).foregroundStyle(.white.opacity(0.9))
+    private func reserveBreakdown(_ title: String, value: Money, color: Color) -> some View {
+        VStack(alignment: .leading, spacing: 5) {
+            HStack(spacing: 5) {
+                Circle().fill(color).frame(width: 4, height: 4)
+                Text(title).font(.caption).foregroundStyle(AppPalette.heroMuted)
+            }
+            FinanceSensitiveAmount(value: value.formatted)
+                .font(AppTypography.amount(13, weight: .semibold)).foregroundStyle(AppPalette.heroInk)
         }
+        .fixedSize(horizontal: true, vertical: true)
     }
 
     private func reserveRow(_ reserve: StoredProtectedReserve) -> some View {
@@ -794,7 +833,9 @@ struct ProtectedReservesView: View {
         do {
             try context.transaction { context.insert(reserve) }
             isAdding = false
-        } catch { errorMessage = error.localizedDescription }
+            undoRecord = nil
+            commitPulse &+= 1
+        } catch { context.rollback(); errorMessage = error.localizedDescription }
     }
 
     private func update(_ reserve: StoredProtectedReserve, title: String, amount: Money,
@@ -815,7 +856,8 @@ struct ProtectedReservesView: View {
                 createdAt: reserve.createdAt, wasDeleted: false, linkedGoalID: oldGoalID,
                 linkedPlanItemID: oldPlanID, linkedOccurrenceDate: oldOccurrenceDate)
             editingReserve = nil
-        } catch { errorMessage = error.localizedDescription }
+            commitPulse &+= 1
+        } catch { context.rollback(); errorMessage = error.localizedDescription }
     }
 
     private func delete(_ reserve: StoredProtectedReserve) {
@@ -825,7 +867,9 @@ struct ProtectedReservesView: View {
         do {
             try context.transaction { context.delete(reserve) }
             undoRecord = backup
-        } catch { errorMessage = error.localizedDescription }
+            editingReserve = nil
+            commitPulse &+= 1
+        } catch { context.rollback(); errorMessage = error.localizedDescription }
     }
 
     private func undo(_ record: ProtectedReserveUndo) {
@@ -844,7 +888,51 @@ struct ProtectedReservesView: View {
                 }
             }
             undoRecord = nil
-        } catch { errorMessage = error.localizedDescription }
+            commitPulse &+= 1
+        } catch { context.rollback(); errorMessage = error.localizedDescription }
+    }
+}
+
+private struct ReserveAllocationRail: View {
+    let balance: Money
+    let amounts: [Money]
+    private let colors = [AppPalette.heroMuted, AppPalette.softAccent, Color.white]
+
+    var body: some View {
+        GeometryReader { geometry in
+            let width = max(0, geometry.size.width - 8)
+            let denominator = max(1, Double(balance.kopecks))
+            ZStack(alignment: .leading) {
+                RoundedRectangle(cornerRadius: 10, style: .continuous)
+                    .fill(Color.black.opacity(0.75))
+                    .overlay(RoundedRectangle(cornerRadius: 10, style: .continuous)
+                        .stroke(LinearGradient(colors: [.black, .white.opacity(0.18)], startPoint: .top, endPoint: .bottom), lineWidth: 1))
+                HStack(spacing: 0) {
+                    ForEach(amounts.indices, id: \.self) { index in
+                        let previous = amounts.prefix(index).reduce(0.0) { $0 + max(0, Double($1.kopecks)) }
+                        let start = min(1, previous / denominator)
+                        let end = min(1, (previous + max(0, Double(amounts[index].kopecks))) / denominator)
+                        ZStack {
+                            Rectangle().fill(LinearGradient(colors: [colors[index].opacity(0.9), colors[index].opacity(0.45)],
+                                                           startPoint: .top, endPoint: .bottom))
+                            Canvas { context, size in
+                                for x in stride(from: CGFloat(3), to: size.width, by: 4) {
+                                    var rib = Path()
+                                    rib.move(to: CGPoint(x: x, y: 5))
+                                    rib.addLine(to: CGPoint(x: x, y: size.height - 5))
+                                    context.stroke(rib, with: .color(.black.opacity(0.18)), lineWidth: 0.5)
+                                }
+                            }
+                            Rectangle().strokeBorder(.white.opacity(0.16), lineWidth: 1)
+                        }
+                        .frame(width: max(0, width * CGFloat(end - start)))
+                    }
+                }
+                .frame(height: max(0, geometry.size.height - 8))
+                .clipShape(RoundedRectangle(cornerRadius: 7, style: .continuous))
+                .padding(4)
+            }
+        }
     }
 }
 
@@ -855,6 +943,8 @@ private struct ProtectedReserveEditor: View {
     let goals: [StoredGoal]
     let planItems: [StoredPlanItem]
     let onSave: (String, Money, UUID?, UUID?, Date?) -> Void
+    let onRelease: (() -> Void)?
+    @State private var confirmRelease = false
     @State private var name: String
     @State private var amountText: String
     @State private var target: ProtectedReserveTarget
@@ -865,13 +955,14 @@ private struct ProtectedReserveEditor: View {
 
     init(title: String, initialTitle: String, initialAmount: Money, initialGoalID: UUID?,
          initialPlanItemID: UUID?, initialOccurrenceDate: Date, goals: [StoredGoal],
-         planItems: [StoredPlanItem], saveTitle: String,
+         planItems: [StoredPlanItem], saveTitle: String, onRelease: (() -> Void)? = nil,
          onSave: @escaping (String, Money, UUID?, UUID?, Date?) -> Void) {
         self.title = title
         self.saveTitle = saveTitle
         self.goals = goals
         self.planItems = planItems
         self.onSave = onSave
+        self.onRelease = onRelease
         _name = State(initialValue: initialTitle)
         _amountText = State(initialValue: NSDecimalNumber(decimal: initialAmount.decimalRubles).stringValue)
         _selectedGoalID = State(initialValue: initialGoalID ?? goals.first?.id)
@@ -918,8 +1009,14 @@ private struct ProtectedReserveEditor: View {
                         .font(.footnote).foregroundStyle(.secondary)
                 }
                 Section {
-                    Text("Чтобы освободить часть, укажи меньшую сумму. Разница вернётся в доступный остаток, сам баланс счёта останется прежним.")
+                    Text("Уменьши сумму, чтобы освободить часть резерва. Связанные цели и платежи продолжат учитываться; итог свободных денег зависит от их сумм. Баланс счёта останется прежним.")
                         .font(.footnote).foregroundStyle(.secondary)
+                }
+                if onRelease != nil {
+                    Section {
+                        Button("Освободить весь резерв", role: .destructive) { confirmRelease = true }
+                        Text("Удаление можно отменить на экране резервов.").font(.footnote).foregroundStyle(.secondary)
+                    }
                 }
                 if let validationMessage {
                     Section { Text(validationMessage).foregroundStyle(.red).font(.footnote) }
@@ -927,6 +1024,12 @@ private struct ProtectedReserveEditor: View {
             }
             .navigationTitle(title)
             .navigationBarTitleDisplayMode(.inline)
+            .confirmationDialog("Освободить весь резерв?", isPresented: $confirmRelease, titleVisibility: .visible) {
+                Button("Освободить резерв", role: .destructive) { onRelease?() }
+                Button("Отмена", role: .cancel) { }
+            } message: {
+                Text("Запись резерва будет удалена. Связанные цели и платежи сохранятся и продолжат учитываться в плане. Баланс счёта не изменится.")
+            }
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) { Button("Отмена") { dismiss() } }
                 ToolbarItem(placement: .confirmationAction) {
