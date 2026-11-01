@@ -13,6 +13,7 @@ struct FinancialHorizonView: View {
     @State private var projectionAnchor = Date.now
     @State private var scenarioEnabled = false
     @FocusState private var isScenarioAmountFocused: Bool
+    @AccessibilityFocusState private var isScenarioAmountAccessibilityFocused: Bool
     @State private var scenarioAmount = ""
     @State private var scenarioDate = Date.now
     @State private var isShowingProjectionValues = false
@@ -361,11 +362,27 @@ struct FinancialHorizonView: View {
                 .font(AppTypography.ui(15, weight: .semibold)).foregroundStyle(AppPalette.accent)
             }
             HStack(spacing: 10) {
-                TextField("Сумма", text: $scenarioAmount)
-                    .keyboardType(.decimalPad)
-                    .font(AppTypography.amount(22, weight: .semibold))
-                    .accessibilityLabel("Сумма гипотетической покупки")
-                    .focused($isScenarioAmountFocused)
+                if hideAmounts {
+                    Button {
+                        hideAmounts = false
+                        Task { @MainActor in
+                            await Task.yield()
+                            isScenarioAmountAccessibilityFocused = true
+                        }
+                    } label: {
+                        Label("Сумма скрыта · показать", systemImage: "eye")
+                            .frame(maxWidth: .infinity, minHeight: 44, alignment: .leading)
+                    }
+                    .accessibilityLabel("Показать суммы: сумма гипотетической покупки")
+                    .accessibilityValue("Сумма скрыта")
+                } else {
+                    TextField("Сумма", text: $scenarioAmount)
+                        .keyboardType(.decimalPad)
+                        .font(AppTypography.amount(22, weight: .semibold))
+                        .accessibilityLabel("Сумма гипотетической покупки")
+                        .focused($isScenarioAmountFocused)
+                        .accessibilityFocused($isScenarioAmountAccessibilityFocused)
+                }
                 Text("₽").font(AppTypography.amount(20, weight: .semibold)).foregroundStyle(.secondary)
             }
             .padding(14)
@@ -1015,7 +1032,7 @@ private struct ProtectedReserveEditor: View {
             Form {
                 Section("О резерве") {
                     TextField("Название, например «Отпуск»", text: $name)
-                    TextField("Сумма, ₽", text: $amountText).keyboardType(.decimalPad)
+                    PrivateAmountInput(title: "Сумма, ₽", value: $amountText).keyboardType(.decimalPad)
                     Picker("Учитывать как", selection: $target) {
                         ForEach(ProtectedReserveTarget.allCases) { Text($0.rawValue).tag($0) }
                     }

@@ -2866,8 +2866,8 @@ private struct SensitiveAmount: View {
     var body: some View {
         Text(hidden ? "••••••" : value)
             .monospacedDigit()
-            .contentTransition(reduceMotion ? .identity : .numericText())
-            .animation(reduceMotion ? nil : .snappy(duration: 0.3), value: hidden)
+            .contentTransition(hidden || reduceMotion ? .identity : .numericText())
+            .animation(hidden || reduceMotion ? nil : .snappy(duration: 0.3), value: hidden)
             .privacySensitive()
     }
 }
@@ -2893,14 +2893,40 @@ private extension View {
     }
 }
 
-private struct GoalAmountField: View {
+struct PrivateAmountInput: View {
+    @AppStorage("moneywise.hideAmounts") private var hidden = false
+    @AccessibilityFocusState private var amountAccessibilityFocused: Bool
     let title: String
     @Binding var value: String
+    var isEditable = true
+    var inputIdentifier = ""
+
     var body: some View {
         VStack(alignment: .leading, spacing: 6) {
             Text(title).font(.caption).foregroundStyle(.secondary)
-            TextField(title, text: $value).keyboardType(.decimalPad)
-                .monospacedDigit().accessibilityLabel(title)
+            if hidden {
+                Button {
+                    hidden = false
+                    Task { @MainActor in
+                        await Task.yield()
+                        amountAccessibilityFocused = true
+                    }
+                } label: {
+                    Label("Сумма скрыта · показать", systemImage: "eye")
+                        .frame(maxWidth: .infinity, minHeight: 44, alignment: .leading)
+                }
+                .buttonStyle(.plain).foregroundStyle(AppPalette.accent)
+                .accessibilityLabel("Показать суммы: \(title)")
+                .accessibilityValue("Сумма скрыта")
+                .accessibilityHint("Показывает суммы во всём приложении.")
+                .accessibilityIdentifier("privateAmount.\(title)")
+            } else {
+                TextField(title, text: $value).keyboardType(.decimalPad)
+                    .monospacedDigit().accessibilityLabel(title)
+                    .privacySensitive().disabled(!isEditable)
+                    .accessibilityIdentifier(inputIdentifier)
+                    .accessibilityFocused($amountAccessibilityFocused)
+            }
         }
     }
 }
@@ -2921,9 +2947,9 @@ private struct AddGoalView: View {
                     Text("Название").font(.caption).foregroundStyle(.secondary)
                     TextField("Например: новый телефон", text: $title)
                 }
-                GoalAmountField(title: "Сколько нужно, ₽", value: $target)
-                GoalAmountField(title: "Уже накоплено, ₽", value: $saved)
-                GoalAmountField(title: "Откладывать в месяц, ₽", value: $monthly)
+                PrivateAmountInput(title: "Сколько нужно, ₽", value: $target)
+                PrivateAmountInput(title: "Уже накоплено, ₽", value: $saved)
+                PrivateAmountInput(title: "Откладывать в месяц, ₽", value: $monthly)
                 DatePicker("Желаемая дата", selection: $targetDate, in: Date()..., displayedComponents: .date)
             }
             Section { Text("Укажи 0, если регулярных взносов пока нет. Регулярное пополнение цели учитывается как гибкий взнос. При нехватке денег приложение покажет, какой платёж можно перенести.").font(.footnote).foregroundStyle(.secondary) }
@@ -2989,16 +3015,16 @@ private struct EditGoalView: View {
             Section("Цель") {
                 VStack(alignment: .leading, spacing: 6) {
                     Text("Название").font(.caption).foregroundStyle(.secondary)
-                    TextField("Название", text: $title)
+                    TextField("Название", text: $title).disabled(goal.completedAt != nil)
                 }
-                GoalAmountField(title: "Нужно всего, ₽", value: $target)
-                GoalAmountField(title: "Уже накоплено, ₽", value: $saved)
-                GoalAmountField(title: "Откладывать в месяц, ₽", value: $monthly)
-                DatePicker("Желаемая дата", selection: $targetDate, in: Date()..., displayedComponents: .date)
+                PrivateAmountInput(title: "Нужно всего, ₽", value: $target, isEditable: goal.completedAt == nil)
+                PrivateAmountInput(title: "Уже накоплено, ₽", value: $saved, isEditable: goal.completedAt == nil)
+                PrivateAmountInput(title: "Откладывать в месяц, ₽", value: $monthly, isEditable: goal.completedAt == nil)
+                DatePicker("Желаемая дата", selection: $targetDate, in: Date()..., displayedComponents: .date).disabled(goal.completedAt != nil)
                 if !accumulationPaused && goal.completedAt == nil {
                     DatePicker("Следующий взнос", selection: $firstContributionDate, in: Date()..., displayedComponents: .date)
                 }
-            }.disabled(goal.completedAt != nil)
+            }
             Section("Состояние") {
                 if let completedAt = goal.completedAt {
                     Label("Цель завершена", systemImage: "checkmark.circle")
@@ -3163,7 +3189,7 @@ private struct AddAccountView: View {
             Form {
                 Picker("Банк или тип средств", selection: $bank) { ForEach(BankName.allCases) { Text($0.rawValue).tag($0) } }
                 TextField("Название счёта", text: $name)
-                TextField("Баланс, ₽", text: $balance).keyboardType(.decimalPad)
+                PrivateAmountInput(title: "Баланс, ₽", value: $balance).keyboardType(.decimalPad)
                 Text("Отрицательный баланс можно указать, если счёт в минусе или есть задолженность по карте.")
                     .font(.footnote).foregroundStyle(.secondary)
                 Text(bank == .cash
@@ -3210,7 +3236,7 @@ private struct EditAccountView: View {
                 ForEach(BankName.allCases) { Text($0.rawValue).tag($0) }
             }
             TextField("Название", text: $name)
-            TextField("Баланс, ₽", text: $balance).keyboardType(.decimalPad)
+            PrivateAmountInput(title: "Баланс, ₽", value: $balance).keyboardType(.decimalPad)
             Button(balanceConfirmed ? "Баланс подтверждён" : "Подтвердить баланс сейчас") {
                 balanceConfirmed = true
             }
@@ -3407,7 +3433,7 @@ private struct ImportPreviewView: View {
                             )) {
                                 VStack(alignment: .leading, spacing: 3) {
                                     Text(candidate.title)
-                                    Text("≈ \(candidate.amount.formatted) · \(candidate.recurrence == .weekly ? "еженедельно" : "ежемесячно") · следующая дата \(candidate.nextDate.formatted(date: .abbreviated, time: .omitted))")
+                                    SensitiveAmount(value: "≈ \(candidate.amount.formatted) · \(candidate.recurrence == .weekly ? "еженедельно" : "ежемесячно") · следующая дата \(candidate.nextDate.formatted(date: .abbreviated, time: .omitted))")
                                         .font(.caption).foregroundStyle(.secondary)
                                     Text("Предложение по истории. Проверь перед добавлением в план.")
                                         .font(.caption2).foregroundStyle(.secondary)
@@ -3492,7 +3518,7 @@ private struct AddTransactionView: View {
             Form {
                 Section("Операция") {
                     TextField("Название", text: $merchant)
-                    TextField("Сумма, ₽", text: $amount).keyboardType(.decimalPad)
+                    PrivateAmountInput(title: "Сумма, ₽", value: $amount).keyboardType(.decimalPad)
                     Picker("Тип", selection: $kind) {
                         Text("Покупка").tag(TransactionKind.purchase)
                         Text("Доход").tag(TransactionKind.income)
@@ -3687,9 +3713,8 @@ private struct EditTransactionView: View {
                     Text("У этой операции неизвестно направление. Она не входит в аналитику расходов и доходов.")
                         .font(.footnote).foregroundStyle(.secondary)
                 }
-                TextField("Сумма, ₽", text: $amountText)
-                    .keyboardType(.decimalPad)
-                    .disabled(transaction.internalTransfer && draft.isInternalTransfer)
+                PrivateAmountInput(title: "Сумма, ₽", value: $amountText,
+                    isEditable: !(transaction.internalTransfer && draft.isInternalTransfer))
                     .onChange(of: amountText) { _, value in
                         if let rubles = Money.parseRubles(value), rubles > 0 {
                             draft.amount = Money(rubles: rubles)
@@ -3718,7 +3743,7 @@ private struct EditTransactionView: View {
                                     VStack(alignment: .leading, spacing: 4) {
                                         Text("\(accountLabel(suggestion.counterpart)) · \(suggestion.counterpart.merchant)")
                                             .foregroundStyle(.primary)
-                                        Text("\(suggestion.counterpart.date.formatted(date: .abbreviated, time: .shortened)) · \(suggestion.counterpart.amount.formatted)")
+                                        HStack { Text(suggestion.counterpart.date.formatted(date: .abbreviated, time: .shortened)); SensitiveAmount(value: suggestion.counterpart.amount.formatted) }
                                             .font(.caption).foregroundStyle(.secondary)
                                     }
                                 }
@@ -3740,7 +3765,7 @@ private struct EditTransactionView: View {
                 Picker("Плановый платёж", selection: $selectedPlanItemID) {
                     Text("Не связывать").tag(UUID?.none)
                     ForEach(planItems) { plan in
-                        Text("\(plan.title) · \(Money(kopecks: plan.amountKopecks).formatted)")
+                        HStack { Text(plan.title); SensitiveAmount(value: Money(kopecks: plan.amountKopecks).formatted) }
                             .tag(Optional(plan.id))
                     }
                 }
@@ -4023,7 +4048,7 @@ private struct EditPlanItemView: View {
     var body: some View {
         Form {
             TextField("Название", text: $title)
-            TextField("Сумма, ₽", text: $amount).keyboardType(.decimalPad)
+            PrivateAmountInput(title: "Сумма, ₽", value: $amount).keyboardType(.decimalPad)
             DatePicker("Дата", selection: $dueDate, displayedComponents: .date)
             Picker("Тип", selection: Binding(get: { kind }, set: { value in
                 kind = value
@@ -4254,7 +4279,7 @@ private struct AddBudgetView: View {
                 .disabled(existingBudget != nil)
             Text("Лимит действует на весь выбранный календарный месяц.")
                 .font(.footnote).foregroundStyle(.secondary)
-            TextField("Лимит на месяц, ₽", text: $amount).keyboardType(.decimalPad)
+            PrivateAmountInput(title: "Лимит на месяц, ₽", value: $amount).keyboardType(.decimalPad)
             if !matchingBudgets.isEmpty {
                 Text("Для этой категории уже есть бюджет. Сохранение заменит его лимит на этот месяц.")
                     .font(.footnote).foregroundStyle(.secondary)
@@ -4315,6 +4340,7 @@ private struct PurchaseCheckView: View {
     @Query private var accounts: [StoredAccount]
     @Query private var goals: [StoredGoal]
     @Query private var planItems: [StoredPlanItem]
+    @AppStorage("moneywise.hideAmounts") private var hideAmounts = false
     @State private var amount = ""
     @State private var category: Category = .other
     @State private var purchaseDate = Date.now
@@ -4331,7 +4357,7 @@ private struct PurchaseCheckView: View {
     var body: some View {
         Form {
             Section("Покупка") {
-                TextField("Сумма в рублях", text: $amount).keyboardType(.decimalPad)
+                PrivateAmountInput(title: "Сумма в рублях", value: $amount).keyboardType(.decimalPad)
                 Picker("Категория", selection: $category) {
                     ForEach(Category.allCases.filter(\.supportsPurchaseClassification)) { Text($0.title).tag($0) }
                 }
@@ -4342,7 +4368,13 @@ private struct PurchaseCheckView: View {
                 Button("Проверить") { checkPurchase() }
                     .disabled(amount.isEmpty)
             }
-            if let result {
+            if result != nil && hideAmounts {
+                Section("Результат") {
+                    Label("Результат скрыт вместе с суммами", systemImage: "eye.slash")
+                    Button("Показать суммы") { hideAmounts = false }
+                }
+            }
+            if let result, !hideAmounts {
                 Section("Результат") {
                     LabeledContent("Категория", value: category.title)
                     LabeledContent("Планирование", value: isPlanned ? "Запланирована заранее" : "Не была запланирована")
@@ -4611,7 +4643,8 @@ private struct PurchaseCheckView: View {
     }
 
     private func verdictText(_ verdict: PurchaseVerdict) -> String {
-        switch verdict {
+        if hideAmounts { return "Суммы скрыты" }
+        return switch verdict {
         case .canBuy(let balance), .canBuyWithChanges(let balance, _): "Прогнозный минимум: \(balance.formatted)"
         case .unsafe(let gap, _): "Дефицит: \(gap.formatted)"
         case .insufficientData(let text): text
@@ -4732,7 +4765,7 @@ private struct SettingsView: View {
 
     private var minimumReserveSection: some View {
         Section("Минимальный остаток") {
-            TextField("Не опускаться ниже, ₽", text: $reserveText).keyboardType(.decimalPad)
+            PrivateAmountInput(title: "Не опускаться ниже, ₽", value: $reserveText).keyboardType(.decimalPad)
             Text("Это общий защитный порог. Отдельные суммы с названиями настраиваются в разделе «Обзор → Защищённые суммы».")
                 .font(.footnote).foregroundStyle(.secondary)
         }
@@ -4740,7 +4773,7 @@ private struct SettingsView: View {
 
     private var expectedIncomeSection: some View {
         Section("Следующее поступление") {
-            TextField("Сумма, ₽", text: $incomeText).keyboardType(.decimalPad)
+            PrivateAmountInput(title: "Сумма, ₽", value: $incomeText).keyboardType(.decimalPad)
             DatePicker("Дата", selection: $incomeDate, in: Date()..., displayedComponents: .date)
             Toggle("Подтверждено для прогноза", isOn: $incomeConfirmed)
                 .disabled(!canConfirmIncome)
@@ -4807,7 +4840,7 @@ private struct SettingsView: View {
     private var currentBalanceSection: some View {
         Section("Текущий баланс по счетам") {
             if accounts.isEmpty {
-                TextField("Баланс, ₽", text: $balanceText).keyboardType(.decimalPad)
+                PrivateAmountInput(title: "Баланс, ₽", value: $balanceText).keyboardType(.decimalPad)
                 Button(balanceConfirmed ? "Баланс подтверждён" : "Подтвердить баланс сейчас") {
                     balanceConfirmed = true
                 }
@@ -5499,8 +5532,8 @@ private struct AddDebtView: View {
                     ForEach(DebtDirection.allCases, id: \.self) { Text($0.title).tag($0) }
                 }
                 TextField(direction == .owedByMe ? "Кому должен" : "Кто должен тебе", text: $creditor)
-                TextField(direction == .owedByMe ? "Остаток моего долга, ₽" : "Остаток долга мне, ₽", text: $balance).keyboardType(.decimalPad)
-                TextField("Платёж в месяц, ₽", text: $payment).keyboardType(.decimalPad)
+                PrivateAmountInput(title: direction == .owedByMe ? "Остаток моего долга, ₽" : "Остаток долга мне, ₽", value: $balance).keyboardType(.decimalPad)
+                PrivateAmountInput(title: "Платёж в месяц, ₽", value: $payment).keyboardType(.decimalPad)
                 DatePicker("Первый платёж", selection: $firstPaymentDate, in: Date()..., displayedComponents: .date)
                 ReminderFields(daysBefore: $reminderDays, minutes: $reminderTimeMinutes)
                 if direction == .owedToMe {
@@ -5573,8 +5606,7 @@ private struct RecordDebtPaymentView: View {
     var body: some View {
         Form {
             Section("Фактическое уменьшение основного долга") {
-                TextField("Погашено основного долга, ₽", text: $amount).keyboardType(.decimalPad)
-                    .accessibilityIdentifier("debt.paymentAmount")
+                PrivateAmountInput(title: "Погашено основного долга, ₽", value: $amount, inputIdentifier: "debt.paymentAmount")
                 DatePicker("Дата выплаты", selection: $date, in: ...Date(), displayedComponents: .date)
                 TextField("Комментарий", text: $note, axis: .vertical).lineLimit(1...4)
                 HStack {
@@ -5775,14 +5807,8 @@ private struct EditDebtView: View {
                     Text(direction == .owedByMe ? "Кому должен" : "Кто должен тебе").font(.caption).foregroundStyle(.secondary)
                     TextField(direction == .owedByMe ? "Кому должен" : "Кто должен тебе", text: $creditor)
                 }
-                VStack(alignment: .leading, spacing: 6) {
-                    Text("Подтверждённый остаток, ₽").font(.caption).foregroundStyle(.secondary)
-                    TextField(direction == .owedByMe ? "Подтверждённый долг, ₽" : "Подтверждённый долг тебе, ₽", text: $balance).keyboardType(.decimalPad)
-                }
-                VStack(alignment: .leading, spacing: 6) {
-                    Text("Платёж в месяц, ₽").font(.caption).foregroundStyle(.secondary)
-                    TextField("Платёж в месяц, ₽", text: $payment).keyboardType(.decimalPad)
-                }
+                PrivateAmountInput(title: direction == .owedByMe ? "Подтверждённый долг, ₽" : "Подтверждённый долг тебе, ₽", value: $balance)
+                PrivateAmountInput(title: "Платёж в месяц, ₽", value: $payment)
                 DatePicker("Следующий платёж", selection: $nextPaymentDate, in: Date()..., displayedComponents: .date)
                 ReminderFields(daysBefore: $reminderDays, minutes: $reminderTimeMinutes)
                 if direction == .owedToMe {
@@ -5920,7 +5946,7 @@ private struct AddPlanItemView: View {
         Form {
             Section(kind == .debtCollection ? "Ожидаемое поступление" : "Запланированное событие") {
                 TextField("Например: дорога или возврат долга", text: $title)
-                TextField("Сумма, ₽", text: $amount).keyboardType(.decimalPad)
+                PrivateAmountInput(title: "Сумма, ₽", value: $amount).keyboardType(.decimalPad)
                 DatePicker("Дата", selection: $date, in: Date()..., displayedComponents: .date)
                 Picker("Тип", selection: Binding(get: { kind }, set: { value in
                     kind = value

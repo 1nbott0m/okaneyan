@@ -1,0 +1,19 @@
+{
+  "fixture": "Synthetic dedicated Reminder Simulator; only hideAmounts preference changed. Settings 10000→12345 draft was closed without Save.",
+  "unchangedFinancialTables": {
+    "ZSTOREDACCOUNT": true,
+    "ZSTOREDBUDGET": true,
+    "ZSTOREDDEBT": true,
+    "ZSTOREDGOAL": true,
+    "ZSTOREDINTERNALTRANSFERPAIR": true,
+    "ZSTOREDMERCHANTRULE": true,
+    "ZSTOREDPLANITEM": true,
+    "ZSTOREDPROTECTEDRESERVE": true,
+    "ZSTOREDSETTINGS": true,
+    "ZSTOREDTRANSACTION": true
+  },
+  "tablesCompared": 10,
+  "balanceKopecks": 1000000,
+  "operationCount": 1,
+  "goalCount": 1
+}

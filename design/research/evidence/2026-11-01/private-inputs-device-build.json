@@ -1,0 +1,13 @@
+{
+  "configuration": "Release",
+  "platform": "iphoneos",
+  "architecture": "arm64",
+  "build": "succeeded",
+  "signed": false,
+  "physicalDeviceVerified": false,
+  "installableAsDelivered": false,
+  "minimumOSVersion": "17.0",
+  "archive": "work/device-builds/okaneyan-private-inputs-unsigned-arm64.zip",
+  "archiveSHA256": "0b207e66ba0805cc6559f2b376fa6986ffac8b0c25252fc29a03eb79743f948f",
+  "log": "/tmp/moneywise-private-input-device-release.log"
+}

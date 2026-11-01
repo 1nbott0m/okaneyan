@@ -2,7 +2,7 @@
 
 **Snapshot:** 2026-10-30, after accessibility-size Overview reflow and Orbit Reduce Motion host fix.
 
-**Continuation:** branch `codex/moneywise-native-ui`, after requested checkpoint `97d28c5`. Latest checkpoint: unknown-balance Reserves correction (`1fbecc9`) and native goal pause/completion (2026-11-01). See the final entry in `.agent/tasks/moneywise-integration-and-delivery.md` and `design/research/evidence/2026-11-01/goal-lifecycle-persistence-readback.json`. Other worktrees remain untouched.
+**Continuation:** branch `codex/moneywise-native-ui`, after requested checkpoint `97d28c5`. Latest checkpoint: hidden financial-input correction (2026-11-01), after published goal lifecycle `45a4ffb`. See the final entry in `.agent/tasks/moneywise-integration-and-delivery.md` and `design/research/evidence/2026-11-01/private-inputs-persistence-readback.json`. Other worktrees remain untouched.
 
 - P0-01 change: Overview and account rows display the last balance confirmation; the Overview states the saved balance is not live bank data. A posted included-account operation dated after the account snapshot adds a reconciliation warning and disables free-cash, daily-limit, horizon confidence and purchase-safe advice until the user reconfirms the balance. Detection is by operation date because the store has no entry timestamp; backdated operations entered after confirmation remain a known gap.
 - Direct MoneyCore verification passed for fail-closed reconciliation behavior and decoding older snapshots. The earlier Simulator account/persistence flow verified the freshness label before this Overview extension; current card wording and stale/future row renders remain unverified. No existing simulator data was cleared.
