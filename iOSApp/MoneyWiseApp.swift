@@ -414,14 +414,28 @@ private struct DebtChange: Codable, Identifiable {
     var monthlyContributionKopecks: Int64
     var targetDate: Date
     var planItemID: UUID?
+    var accumulationPaused: Bool?
+    var completedAt: Date?
     init(title: String, target: Money, saved: Money, monthlyContribution: Money, targetDate: Date, planItemID: UUID?) {
         id = UUID(); self.title = title; targetKopecks = target.kopecks; savedKopecks = saved.kopecks
         monthlyContributionKopecks = monthlyContribution.kopecks; self.targetDate = targetDate; self.planItemID = planItemID
+        accumulationPaused = nil; completedAt = nil
+    }
+    var isAccumulationPaused: Bool { accumulationPaused == true }
+    var effectiveMonthlyContribution: Money {
+        isAccumulationPaused || completedAt != nil ? .zero : Money(kopecks: monthlyContributionKopecks)
+    }
+    var lifecycleLabel: String {
+        if completedAt != nil { return "Завершена · средства защищены" }
+        if isAccumulationPaused { return "Накопление на паузе" }
+        if savedKopecks >= targetKopecks { return "Цель достигнута · можно завершить" }
+        return monthlyContributionKopecks > 0 ? "Регулярные взносы" : "Без регулярных взносов"
     }
     var progress: Double { targetKopecks > 0 ? min(1, Double(savedKopecks) / Double(targetKopecks)) : 0 }
     var hasValidFinancialData: Bool {
         targetKopecks > 0 && savedKopecks >= 0 && monthlyContributionKopecks >= 0 &&
-            targetDate.timeIntervalSince1970.isFinite
+            targetDate.timeIntervalSince1970.isFinite &&
+            (completedAt.map { savedKopecks >= targetKopecks && $0.timeIntervalSince1970.isFinite } ?? true)
     }
 }
 
@@ -717,7 +731,7 @@ private struct RootView: View {
         return GoalContributionPlan.matchesLinkedPlan(
             target: Money(kopecks: goal.targetKopecks),
             saved: Money(kopecks: goal.savedKopecks),
-            monthlyContribution: Money(kopecks: goal.monthlyContributionKopecks),
+            monthlyContribution: goal.effectiveMonthlyContribution,
             firstDate: linkedPlan?.dueDate ?? firstPossibleDate,
             targetDate: goal.targetDate,
             hasPlanReference: goal.planItemID != nil, plan: linkedPlan,
@@ -1232,7 +1246,11 @@ private struct AccountsOverviewView: View {
 
         let recurrence = ScheduledItem.Recurrence(rawValue: item.recurrenceRaw)
         let dateDetails: String
-        if let recurrence, recurrence == .none {
+        if let goal = goals.first(where: { $0.planItemID == item.id }), goal.completedAt != nil {
+            dateDetails = "Цель завершена"
+        } else if let goal = goals.first(where: { $0.planItemID == item.id }), goal.isAccumulationPaused {
+            dateDetails = "Накопление на паузе"
+        } else if let recurrence, recurrence == .none {
             let today = Calendar.current.startOfDay(for: .now)
             dateDetails = item.dueDate < today
                 ? "Просрочено с \(item.dueDate.formatted(date: .abbreviated, time: .omitted))"
@@ -1317,7 +1335,8 @@ private struct AccountsOverviewView: View {
                         } label: {
                             VStack(alignment: .leading, spacing: 6) {
                                 HStack { Text(goal.title); Spacer(); SensitiveAmount(value: "\(Money(kopecks: goal.savedKopecks).formatted) / \(Money(kopecks: goal.targetKopecks).formatted)").font(AppTypography.amount(12)) }
-                                ProgressView(value: goal.progress).tint(.green)
+                                ProgressView(value: goal.progress).tint(AppPalette.accent)
+                                Text(goal.lifecycleLabel).font(.caption.weight(.medium)).foregroundStyle(.secondary)
                                 Text("Цель к \(goal.targetDate.formatted(date: .abbreviated, time: .omitted))").font(.caption2).foregroundStyle(.secondary)
                             }
                         }
@@ -2874,25 +2893,47 @@ private extension View {
     }
 }
 
+private struct GoalAmountField: View {
+    let title: String
+    @Binding var value: String
+    var body: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            Text(title).font(.caption).foregroundStyle(.secondary)
+            TextField(title, text: $value).keyboardType(.decimalPad)
+                .monospacedDigit().accessibilityLabel(title)
+        }
+    }
+}
+
 private struct AddGoalView: View {
     @Environment(\.modelContext) private var context
     @Environment(\.dismiss) private var dismiss
     @State private var title = ""
     @State private var target = ""
     @State private var saved = "0"
-    @State private var monthly = ""
+    @State private var monthly = "0"
     @State private var saveError: String?
     @State private var targetDate = Calendar.current.date(byAdding: .month, value: 6, to: .now) ?? .now
     var body: some View {
         Form {
             Section("Цель") {
-                TextField("Например: новый телефон", text: $title)
-                TextField("Сколько нужно, ₽", text: $target).keyboardType(.decimalPad)
-                TextField("Уже накоплено, ₽", text: $saved).keyboardType(.decimalPad)
-                TextField("Откладывать в месяц, ₽", text: $monthly).keyboardType(.decimalPad)
+                VStack(alignment: .leading, spacing: 6) {
+                    Text("Название").font(.caption).foregroundStyle(.secondary)
+                    TextField("Например: новый телефон", text: $title)
+                }
+                GoalAmountField(title: "Сколько нужно, ₽", value: $target)
+                GoalAmountField(title: "Уже накоплено, ₽", value: $saved)
+                GoalAmountField(title: "Откладывать в месяц, ₽", value: $monthly)
                 DatePicker("Желаемая дата", selection: $targetDate, in: Date()..., displayedComponents: .date)
             }
-            Section { Text("Регулярное пополнение цели учитывается как гибкий взнос. При нехватке денег приложение покажет, какой платёж можно перенести.").font(.footnote).foregroundStyle(.secondary) }
+            Section { Text("Укажи 0, если регулярных взносов пока нет. Регулярное пополнение цели учитывается как гибкий взнос. При нехватке денег приложение покажет, какой платёж можно перенести.").font(.footnote).foregroundStyle(.secondary) }
+        }
+        .scrollDismissesKeyboard(.interactively)
+        .toolbar {
+            ToolbarItemGroup(placement: .keyboard) {
+                Spacer()
+                Button("Готово") { UIApplication.shared.sendAction(#selector(UIResponder.resignFirstResponder), to: nil, from: nil, for: nil) }
+            }
         }
         .navigationTitle("Новая цель")
         .saveFailureAlert($saveError)
@@ -2940,31 +2981,82 @@ private struct EditGoalView: View {
     @State private var targetDate = Date()
     @State private var firstContributionDate = Date()
     @State private var saveError: String?
+    @State private var accumulationPaused = false
+    @State private var confirmingCompletion = false
 
     var body: some View {
         Form {
             Section("Цель") {
-                TextField("Название", text: $title)
-                TextField("Нужно всего, ₽", text: $target).keyboardType(.decimalPad)
-                TextField("Уже накоплено, ₽", text: $saved).keyboardType(.decimalPad)
-                TextField("Откладывать в месяц, ₽", text: $monthly).keyboardType(.decimalPad)
+                VStack(alignment: .leading, spacing: 6) {
+                    Text("Название").font(.caption).foregroundStyle(.secondary)
+                    TextField("Название", text: $title)
+                }
+                GoalAmountField(title: "Нужно всего, ₽", value: $target)
+                GoalAmountField(title: "Уже накоплено, ₽", value: $saved)
+                GoalAmountField(title: "Откладывать в месяц, ₽", value: $monthly)
                 DatePicker("Желаемая дата", selection: $targetDate, in: Date()..., displayedComponents: .date)
-                DatePicker("Следующий взнос", selection: $firstContributionDate, in: Date()..., displayedComponents: .date)
+                if !accumulationPaused && goal.completedAt == nil {
+                    DatePicker("Следующий взнос", selection: $firstContributionDate, in: Date()..., displayedComponents: .date)
+                }
+            }.disabled(goal.completedAt != nil)
+            Section("Состояние") {
+                if let completedAt = goal.completedAt {
+                    Label("Цель завершена", systemImage: "checkmark.circle")
+                    Text(completedAt.formatted(date: .abbreviated, time: .omitted))
+                        .font(.caption).foregroundStyle(.secondary)
+                    Text("Накопленные средства остаются защищёнными. Завершение цели не списывает деньги со счёта.")
+                        .font(.footnote).foregroundStyle(.secondary)
+                    Button("Вернуть к накоплению") { save(reopening: true) }
+                        .accessibilityIdentifier("goal.reopen")
+                } else {
+                    Toggle("Приостановить накопление", isOn: $accumulationPaused)
+                        .accessibilityIdentifier("goal.pause")
+                    Text(accumulationPaused
+                         ? "Будущие взносы не учитываются. Сумма взноса сохранена для возобновления, уже накопленные средства защищены. Изменение вступит в силу после сохранения."
+                         : "Регулярные взносы учитываются в прогнозе. Фактическое пополнение отмечай в сумме «Уже накоплено».")
+                        .font(.footnote).foregroundStyle(.secondary)
+                    Button("Завершить достигнутую цель") { confirmingCompletion = true }
+                        .disabled(!hasReachedTarget)
+                        .accessibilityIdentifier("goal.complete")
+                }
             }
             Section {
                 Text("Обновляй сумму накоплений после фактического пополнения. План взносов пересчитывается при сохранении, а остаток цели отражается в резерве.")
                     .font(.footnote).foregroundStyle(.secondary)
             }
         }
-        .navigationTitle("Изменить цель")
+        .scrollDismissesKeyboard(.interactively)
+        .toolbar {
+            ToolbarItemGroup(placement: .keyboard) {
+                Spacer()
+                Button("Готово") { UIApplication.shared.sendAction(#selector(UIResponder.resignFirstResponder), to: nil, from: nil, for: nil) }
+            }
+        }
+        .safeAreaPadding(.bottom, 96)
+        .navigationTitle(goal.completedAt == nil ? "Изменить цель" : "Завершённая цель")
         .saveFailureAlert($saveError)
         .toolbar { ToolbarItem(placement: .confirmationAction) {
-            Button("Сохранить", action: save).disabled(title.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+            if goal.completedAt == nil {
+                Button("Сохранить") { save() }
+                    .disabled(title.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+            }
         } }
+        .alert("Завершить цель?", isPresented: $confirmingCompletion) {
+            Button("Завершить цель") { save(completing: true) }
+            Button("Отмена", role: .cancel) {}
+        } message: {
+            Text("Сохраним текущие условия и остановим будущие взносы. Накопленная сумма останется защищённой; операция по счёту не создаётся.")
+        }
         .onAppear(perform: load)
     }
 
+    private var hasReachedTarget: Bool {
+        guard let targetValue = Money.parseRubles(target), let savedValue = Money.parseRubles(saved) else { return false }
+        return targetValue > 0 && savedValue >= targetValue
+    }
+
     private func load() {
+        accumulationPaused = goal.isAccumulationPaused
         title = goal.title
         target = NSDecimalNumber(decimal: Money(kopecks: goal.targetKopecks).decimalRubles).stringValue
         saved = NSDecimalNumber(decimal: Money(kopecks: goal.savedKopecks).decimalRubles).stringValue
@@ -2974,7 +3066,7 @@ private struct EditGoalView: View {
                                     Calendar.current.startOfDay(for: .now))
     }
 
-    private func save() {
+    private func save(completing: Bool = false, reopening: Bool = false) {
         guard let targetValue = Money.parseRubles(target), let savedValue = Money.parseRubles(saved),
               let monthlyValue = Money.parseRubles(monthly) else {
             saveError = "Проверь суммы: они должны быть числами в рублях и помещаться в точный денежный диапазон."
@@ -2982,13 +3074,20 @@ private struct EditGoalView: View {
         }
         let targetAmount = Money(rubles: targetValue)
         let savedAmount = Money(rubles: savedValue)
-        let monthlyAmount = Money(rubles: monthlyValue)
-        guard targetAmount > .zero, savedAmount >= .zero, monthlyAmount >= .zero,
+        let requestedMonthly = Money(rubles: monthlyValue)
+        let paused = reopening || accumulationPaused
+        let completion = completing ? Date.now : (reopening ? nil : goal.completedAt)
+        let monthlyAmount = paused || completion != nil ? Money.zero : requestedMonthly
+        guard targetAmount > .zero, savedAmount >= .zero, requestedMonthly >= .zero,
               !title.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
             saveError = "Цель должна быть больше нуля, накопления и взнос не могут быть отрицательными, а названию нельзя быть пустым."
             return
         }
 
+        guard !completing || savedAmount >= targetAmount else {
+            saveError = "Сначала подтверди накопленную сумму: завершить можно только достигнутую цель."
+            return
+        }
         let count = GoalContributionPlan.occurrencesNeeded(target: targetAmount, saved: savedAmount,
             monthlyContribution: monthlyAmount, firstDate: firstContributionDate, targetDate: targetDate)
         let finalAmount = GoalContributionPlan.finalContributionAmount(target: targetAmount, saved: savedAmount,
@@ -3010,7 +3109,9 @@ private struct EditGoalView: View {
                 goal.title = title.trimmingCharacters(in: .whitespacesAndNewlines)
                 goal.targetKopecks = targetAmount.kopecks
                 goal.savedKopecks = savedAmount.kopecks
-                goal.monthlyContributionKopecks = monthlyAmount.kopecks
+                goal.monthlyContributionKopecks = requestedMonthly.kopecks
+                goal.accumulationPaused = paused
+                goal.completedAt = completion
                 goal.targetDate = targetDate
 
                 if let plan {
@@ -4389,6 +4490,7 @@ private struct PurchaseCheckView: View {
     private func goalPlanShiftProposal(goal: StoredGoal, plan: StoredPlanItem,
                                        purchase: Money) -> GoalPlanShiftProposal? {
         guard goal.planItemID == plan.id, goal.hasValidFinancialData,
+              !goal.isAccumulationPaused, goal.completedAt == nil,
               plan.hasValidFinancialData,
               let targetIncomeDate = snapshot.nextIncomeDate,
               plan.kindRaw == ScheduledItem.Kind.goalContribution.rawValue,
@@ -4427,6 +4529,7 @@ private struct PurchaseCheckView: View {
         guard let proposal = pendingGoalShiftProposal,
               FinanceDataFreshness.isFresh(snapshot.dataUpdatedAt, asOf: .now),
               proposal.goal.planItemID == proposal.plan.id,
+              !proposal.goal.isAccumulationPaused, proposal.goal.completedAt == nil,
               proposal.goal.targetDate == proposal.originalTargetDate,
               proposal.plan.dueDate == proposal.originalPlanDate,
               proposal.plan.amountKopecks == proposal.originalPlanAmount,

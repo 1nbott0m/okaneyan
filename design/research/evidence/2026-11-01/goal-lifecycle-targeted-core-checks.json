@@ -1,0 +1,8 @@
+{
+  "completedPlanCreatesNoFutureOutflow": true,
+  "completedSavingsStayProtected": true,
+  "completedScheduleMatchesEffectiveZero": true,
+  "linkedEnvelopeIsNotCountedTwice": true,
+  "resumed500ScheduleMatches": true,
+  "resumedPlanHasTwo500Outflows": true
+}

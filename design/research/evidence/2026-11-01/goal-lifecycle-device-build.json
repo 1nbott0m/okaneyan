@@ -1,0 +1,14 @@
+{
+  "configuration": "Release",
+  "platform": "iphoneos",
+  "architecture": "arm64",
+  "build": "succeeded",
+  "signed": false,
+  "physicalDeviceVerified": false,
+  "installableAsDelivered": false,
+  "archive": "work/device-builds/okaneyan-goal-lifecycle-unsigned-arm64.zip",
+  "archiveSHA256": "90d2a9856a0c2ff22da1249a9a7a3095b920051226d11c948429323c7b74ba3c",
+  "minimumOSVersion": "17.0",
+  "log": "/tmp/moneywise-goal-final-device-release.log",
+  "deviceInventory": "simulated devices only; zero valid signing identities on 2026-11-01 15:01 local check"
+}

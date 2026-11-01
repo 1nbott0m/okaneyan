@@ -1,0 +1,32 @@
+{
+  "fixture": "Isolated synthetic Reminder simulator; old goal migrated additively. Only goal lifecycle/savings and its new monthly plan intentionally changed.",
+  "goal": {
+    "ZTITLE": "Резервная цель",
+    "ZTARGETKOPECKS": 200000,
+    "ZSAVEDKOPECKS": 200000,
+    "ZMONTHLYCONTRIBUTIONKOPECKS": 50000,
+    "ZACCUMULATIONPAUSED": 1,
+    "ZCOMPLETEDAT": 815227528.501198,
+    "goalID": "718A6598BAD444E586702D4EA7B6436F",
+    "planID": "3A839C4238064A6A80586A2BF86631E5"
+  },
+  "goalPlan": {
+    "ZAMOUNTKOPECKS": 0,
+    "ZOCCURRENCESREMAINING": 0,
+    "ZFINALOCCURRENCEKOPECKS": null,
+    "ZDUEDATE": 817793046.266142,
+    "ZISCONFIRMED": 1,
+    "ZKINDRAW": "goalContribution",
+    "ZRECURRENCERAW": "monthly",
+    "id": "3A839C4238064A6A80586A2BF86631E5"
+  },
+  "unchangedTablesAndPlans": {
+    "ZSTOREDSETTINGS": true,
+    "ZSTOREDTRANSACTION": true,
+    "ZSTOREDACCOUNT": true,
+    "ZSTOREDPROTECTEDRESERVE": true,
+    "originalTwoPlansUnchanged": true
+  },
+  "accountCount": 0,
+  "operationCount": 1
+}
