@@ -443,19 +443,20 @@ struct FinancialHorizonView: View {
         VStack(alignment: .leading, spacing: 12) {
             Text("Подтверждённые события")
                 .font(AppTypography.ui(19, weight: .semibold))
-            let upcomingIncome = snapshot.incomes.filter { $0.date >= .now && $0.date < (Calendar.current.date(byAdding: .day, value: days, to: .now) ?? .distantFuture) }
+            let end = Calendar.current.date(byAdding: .day, value: days, to: projectionAnchor) ?? projectionAnchor
+            let upcomingIncome = snapshot.incomes.filter { $0.date >= projectionAnchor && $0.date <= end }
             ForEach(upcomingIncome) { income in
                 eventRow(income.isConfirmed ? "Подтверждённое поступление" : "Ожидаемое · не учтено в графике",
                          date: income.date, amount: income.amount, icon: income.isConfirmed ? "arrow.down.left" : "clock", tint: income.isConfirmed ? .green : .orange)
             }
-            let shown = snapshot.scheduledItems.filter { $0.isConfirmed && $0.dueDate >= .now && $0.dueDate < (Calendar.current.date(byAdding: .day, value: days, to: .now) ?? .distantFuture) }.sorted { $0.dueDate < $1.dueDate }
+            let shown = FinanceEngine().upcomingOccurrences(snapshot, from: projectionAnchor, through: end)
             if shown.isEmpty && upcomingIncome.isEmpty {
                 Text("На выбранном отрезке нет подтверждённых событий.")
                     .font(.subheadline).foregroundStyle(.secondary).padding(.vertical, 8)
             }
             ForEach(shown) { item in
                 let isDebtReturn = item.kind == .debtCollection
-                eventRow(item.title, date: item.dueDate, amount: item.amount,
+                eventRow(item.title, date: item.date, amount: item.amount,
                          icon: isDebtReturn ? "arrow.down.left" : "arrow.up.right",
                          tint: isDebtReturn ? .green : AppPalette.accent)
             }

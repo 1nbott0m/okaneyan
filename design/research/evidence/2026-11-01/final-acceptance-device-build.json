@@ -1,0 +1,28 @@
+{
+  "date": "2026-11-01",
+  "configuration": "Release",
+  "platform": "iphoneos",
+  "architecture": "arm64",
+  "build": "SUCCEEDED",
+  "archive": "work/device-builds/okaneyan-final-acceptance-unsigned-arm64.zip",
+  "sha256": "3e2b8997b76f8dfec2e4c5f6c03033969a0d64c2263452267b2d8efdfef20702",
+  "sourceFile": "iOSApp/MoneyWiseApp.swift",
+  "sourceSha256": "cd8d018216f2d45b6c7b21f218ef0666e8bb3253179ba11d59604c1495c04d47",
+  "signed": false,
+  "installableAsDelivered": false,
+  "physicalDeviceVerified": false,
+  "signingIdentities": 0,
+  "appleAccountInXcode": false,
+  "physicalDeviceDetected": true,
+  "physicalDeviceConnection": "pairingState unsupported; usage assertion unsupported; app-install feature unavailable",
+  "installationBlockers": [
+    "Sign into Apple Account in Xcode and select Personal Team",
+    "Connect an unlocked trusted iPhone available as an Xcode run destination"
+  ],
+  "privateDeviceIdentifiersIncluded": false,
+  "sourceFiles": {
+    "iOSApp/MoneyWiseApp.swift": "cd8d018216f2d45b6c7b21f218ef0666e8bb3253179ba11d59604c1495c04d47",
+    "iOSApp/FinancialHorizonView.swift": "5854242c2dfca5722b2e8b29824939cb48dac13b93d560fdd97d19691dacc4b5"
+  },
+  "buildLog": "/tmp/moneywise-final-delivery-release.log"
+}

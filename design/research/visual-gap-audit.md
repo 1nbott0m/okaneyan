@@ -440,3 +440,17 @@ All archived A/B/C screenshots use the same sample amount and dates. They are va
 - Largest-text hit/reveal passed 1/1 (24s test), but the retained initial capture shows only part of the naturally scrollable control near the viewport bottom. Capture a read-only full-control state with explicit bounds; this is evidence completion, not a financial-flow replay or a new visual redesign. Secondary import/transfer/purchase-result and Horizon masking are implemented/source-checked but those specific runtime states are not claimed by the four-form test. Manual VoiceOver focus, whole-app privacy and independent critique remain unverified.
 
 - Final largest-text evidence: full-control bounds/reveal passed 1/1 (26s test / 31s XCTest session), actual `ios-private-input-largest-text.png` inspected with the complete label above the viewport bottom. An intermediate capture check failed because fling scrolling overshot the top bound; slow bounded positioning corrected only the harness, no UI/source or financial writes. Final arm64 Release build passed; archive manifest retained. Scoped G2/G4 evidence, G3 NOT TESTED.
+
+## 2026-11-01 — Shared native accent scope
+
+- Before: current `ios-private-settings-after.png` shows system-blue appearance/confirm controls while the approved D1/A accent is rose. Current web Plan context at 390/1440 already uses the rose accent; no web change. Source applies tint only to TabView, leaving its presented settings and the separate lock branch outside the shared scope.
+- Decision: move the existing tint to the common RootView group. Same approved palette, no new style or financial change. Per the owner’s revised cadence, rendered acceptance is deferred to the consolidated final pass; G2/G4 pending and G3 NOT TESTED.
+
+## 2026-11-01 — Horizon event list diverges from the existing financial calendar
+
+- Concrete native before: `ios-final-confirmed-receivable-horizon.png` shows the completed “Долг до истории” as a future 600₽ repayment, although SQLite and its plan retain zero remaining occurrences. The list reads raw first due dates rather than the existing occurrence/settlement service. This also omits repeated occurrences inside the chosen interval. Existing web 390/1440 context is synthetic and does not exercise native closed debt; no web patch.
+- Direction: approved Financial Horizon (final completion TЗ §6.5, R-07/R-23, existing D1), same displayed event rows and MoneyCore `upcomingOccurrences` already used by Overview/Gravity. Use the stable projection anchor and shared occurrence expansion, including partial settlements and finite plans. No MoneyCore calculation or storage change. Result capture is part of final acceptance for this concrete defect; G2/G4 pending, G3 NOT TESTED.
+
+
+- Shared accent after: actual native Settings screenshot `ios-final-settings-shared-accent.png` shows rose navigation/confirmation/appearance controls; the receivable flow passed and financial account/ledger readback is unchanged. Scoped G2/G4 supported; G3 NOT TESTED.
+- Horizon list after: `ios-final-horizon-occurrences-after.png` inspected. Focused read-only native test passed 1/1: completed debt absent and multiple actual collection occurrences visible in 90 days. Uses the existing public MoneyCore policy; no new calculations, writes or purchase P0 replay. Scoped G2/G4 supported, G3 NOT TESTED; does not close all design gates or physical-device QA.

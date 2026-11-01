@@ -1,0 +1,77 @@
+{
+  "date": "2026-11-01",
+  "scope": "Consolidated final acceptance; no accepted purchase P0 replay",
+  "receivable": {
+    "result": "PASSED",
+    "testCount": 1,
+    "seconds": 86.248,
+    "bundle": "/tmp/MoneyWiseFinalAcceptance.xcresult",
+    "verified": [
+      "Unconfirmed collection absent from 90-day event list",
+      "Edit confirmation false to true",
+      "Debt clock 09:45 saved and retained after relaunch",
+      "Confirmed collection shown in 90-day event list",
+      "Native Settings authorized and pending 1",
+      "SQLite and OS calendar queue agree at 09:45",
+      "Account balance and all 15 ledger rows unchanged"
+    ],
+    "notClaimed": [
+      "Numeric reliable forecast while pre-existing reconciliation warning remains",
+      "Physical notification delivery from this future request"
+    ]
+  },
+  "lock": {
+    "change": "Distinguish actual departure from authentication UI inactivity; avoid a new authentication request after success or cancellation",
+    "verifiedStages": [
+      "System simulated successful match reopens tabs and Settings without the prior prompt loop",
+      "Home/activate with financial sheet covers financial fields",
+      "Simulated failed match leaves financial tabs inaccessible"
+    ],
+    "overallAutomatedScenario": "FAILED at unobserved system Cancel/dismiss control; explicit cancel/retry not verified",
+    "runs": [
+      {
+        "bundle": "/tmp/MoneyWiseFinalAcceptance.xcresult",
+        "result": "FAILED before unlock; event sent before sensor readiness; later manual success exposed real repeated-auth defect"
+      },
+      {
+        "bundle": "/tmp/MoneyWiseFinalLockAcceptance.xcresult",
+        "result": "FAILED at retry expectation; positive auth/foreground stages completed; readiness helper missed older still-active sensor"
+      },
+      {
+        "bundle": "/tmp/MoneyWiseFinalLockRecovery.xcresult",
+        "result": "FAILED at retry expectation; correct failed event received but system exposes no Cancel button in this state"
+      },
+      {
+        "bundle": "/tmp/MoneyWiseFinalLockDismiss.xcresult",
+        "result": "FAILED at retry expectation; tapping outside did not dismiss system Face ID; no more repeated attempts"
+      }
+    ],
+    "remaining": [
+      "System cancellation and explicit retry",
+      "Physical Face ID/passcode behavior"
+    ]
+  },
+  "sourceSimulatorsPreserved": true,
+  "originalLocalTestDraftPreserved": true,
+  "newPermanentUITests": 0,
+  "releaseBuild": "SUCCEEDED unsigned arm64",
+  "remainingAcceptance": [
+    "Denied/regranted notification permission",
+    "Final deletion reminder/settings cleanup",
+    "Orbit/targeted native accessibility completion"
+  ],
+  "fullProductComplete": false,
+  "horizonEventList": {
+    "result": "PASSED",
+    "testCount": 1,
+    "testSeconds": 22.698,
+    "bundle": "/tmp/MoneyWiseFinalHorizonInspection.xcresult",
+    "concreteDefect": "Completed debt with zero remaining occurrences still appeared as an upcoming payment; raw rows also omitted repeated dates",
+    "change": "Reuse existing FinanceEngine.upcomingOccurrences with the projection anchor; no core or storage change",
+    "verified": [
+      "Completed debt absent",
+      "Multiple confirmed receivable occurrences visible in 90 days"
+    ],
+    "evidence": "ios-final-horizon-occurrences-after.png"
+  }
+}

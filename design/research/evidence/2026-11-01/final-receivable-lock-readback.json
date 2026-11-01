@@ -1,0 +1,86 @@
+{
+  "date": "2026-11-01",
+  "fixture": "Preserved populated synthetic Creative Simulator clone; no user data",
+  "sourceSimulatorUnchanged": true,
+  "unchangedCommonFinancialTables": [
+    "ZSTOREDACCOUNT",
+    "ZSTOREDBUDGET",
+    "ZSTOREDGOAL",
+    "ZSTOREDINTERNALTRANSFERPAIR",
+    "ZSTOREDMERCHANTRULE",
+    "ZSTOREDPROTECTEDRESERVE",
+    "ZSTOREDTRANSACTION"
+  ],
+  "counts": {
+    "ZSTOREDACCOUNT": 1,
+    "ZSTOREDBUDGET": 0,
+    "ZSTOREDDEBT": 2,
+    "ZSTOREDGOAL": 0,
+    "ZSTOREDINTERNALTRANSFERPAIR": 0,
+    "ZSTOREDMERCHANTRULE": 2,
+    "ZSTOREDPLANITEM": 2,
+    "ZSTOREDPROTECTEDRESERVE": 1,
+    "ZSTOREDSETTINGS": 1,
+    "ZSTOREDTRANSACTION": 15
+  },
+  "accountBalanceKopecks": [
+    1000000
+  ],
+  "plans": [
+    {
+      "ZTITLE": "Погашение долга: Долг до истории",
+      "ZKINDRAW": "debtRepayment",
+      "ZISCONFIRMED": 1,
+      "ZAMOUNTKOPECKS": 60000,
+      "ZOCCURRENCESREMAINING": 0,
+      "ZREMINDERDAYS": 0,
+      "ZREMINDERTIMEMINUTES": null
+    },
+    {
+      "ZTITLE": "Возврат долга: Возврат с историей",
+      "ZKINDRAW": "debtCollection",
+      "ZISCONFIRMED": 1,
+      "ZAMOUNTKOPECKS": 100000,
+      "ZOCCURRENCESREMAINING": null,
+      "ZREMINDERDAYS": 1,
+      "ZREMINDERTIMEMINUTES": 585
+    }
+  ],
+  "debts": [
+    {
+      "name": "Долг до истории",
+      "principalKopecks": 0,
+      "monthlyKopecks": 60000,
+      "historyCount": 3,
+      "latestKind": "repayment",
+      "latestConfirmed": true
+    },
+    {
+      "name": "Возврат с историей",
+      "principalKopecks": 600000,
+      "monthlyKopecks": 100000,
+      "historyCount": 3,
+      "latestKind": "edited",
+      "latestConfirmed": true
+    }
+  ],
+  "pendingNotification": [
+    {
+      "TriggerDateComponents": {
+        "NS.hour": 9,
+        "NS.day": 29,
+        "NS.leapMonth": 0,
+        "NS.minute": 45,
+        "NS.repeatedDay": false,
+        "NS.year": 2026,
+        "NS.month": 11
+      },
+      "AppNotificationIdentifier": "payment-6F4BC802-9A92-49DC-B843-C1B059247D4D",
+      "AppNotificationTitle": "Скоро ожидаемый возврат",
+      "UNNotificationTriggerType": "Calendar",
+      "AppNotificationMessage": "Открой приложение и проверь план поступления."
+    }
+  ],
+  "physicalDeviceVerified": false,
+  "note": "Lock remains enabled only in the disposable final-acceptance clone; original simulator/store unchanged. Current cash/account and 15 transactions are unchanged; future confirmation changes only its plan and debt edit history."
+}

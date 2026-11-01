@@ -621,6 +621,7 @@ private struct RootView: View {
     @State private var isAuthenticating = false
     @State private var authenticationUnavailable = false
     @State private var activeAuthenticationAttemptID: UUID?
+    @State private var needsAuthenticationOnActivation = false
     @State private var authenticationContext: LAContext?
     @AppStorage("moneywise.hideAmounts") private var hideAmounts = false
     @AppStorage("moneywise.doubleFlipHideAmountsEnabled") private var doubleFlipHideAmountsEnabled = false
@@ -937,7 +938,6 @@ private struct RootView: View {
             planView.tabItem { Label("План", systemImage: "calendar").font(AppTypography.ui(12, weight: .medium)) }.tag(2)
         }
         .font(AppTypography.ui(16))
-        .tint(AppPalette.accent)
         .animation(reduceMotion ? nil : .spring(response: 0.42, dampingFraction: 0.88), value: selectedTab)
         .sensoryFeedback(.selection, trigger: selectedTab)
         .fileImporter(isPresented: $showingImport, allowedContentTypes: [.commaSeparatedText, .plainText], allowsMultipleSelection: false) { result in
@@ -969,6 +969,7 @@ private struct RootView: View {
         }
         }
         }
+        .tint(AppPalette.accent)
         .task {
             if !settings.lockEnabled { isUnlocked = true }
             else if isIntroFinished { authenticate() }
@@ -986,6 +987,7 @@ private struct RootView: View {
                 authenticationContext = nil
                 activeAuthenticationAttemptID = nil
                 isAuthenticating = false
+                needsAuthenticationOnActivation = false
                 isUnlocked = true
             }
         }
@@ -994,17 +996,24 @@ private struct RootView: View {
             // `inactive` happens before `background` when the user leaves the app.
             if (phase == .inactive || phase == .background) && settings.lockEnabled {
                 isUnlocked = false
+                // The system authentication sheet also makes the scene inactive.
+                // Its dismissal must not start another prompt or undo cancellation.
+                if !isAuthenticating { needsAuthenticationOnActivation = true }
             }
             // LocalAuthentication may itself temporarily make the scene inactive.
             // Invalidate only after the app actually enters the background.
             if phase == .background && settings.lockEnabled {
+                needsAuthenticationOnActivation = true
                 authenticationContext?.invalidate()
                 authenticationContext = nil
                 activeAuthenticationAttemptID = nil
                 isAuthenticating = false
             }
             if phase == .active { refreshPlanReminders() }
-            if phase == .active && settings.lockEnabled { authenticate() }
+            if phase == .active && needsAuthenticationOnActivation {
+                needsAuthenticationOnActivation = false
+                if settings.lockEnabled { authenticate() }
+            }
             setOrientationMonitoring(doubleFlipHideAmountsEnabled && phase == .active)
         }
         .onAppear {
@@ -1593,6 +1602,7 @@ private struct AccountsOverviewView: View {
 
     private func authenticate() {
         guard settings.lockEnabled else { isUnlocked = true; return }
+        guard !isUnlocked else { return }
         guard !isAuthenticating else { return }
         let context = LAContext()
         var error: NSError?
