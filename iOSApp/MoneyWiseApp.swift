@@ -295,6 +295,7 @@ private func applyingImportCategory(_ transaction: Transaction, categories: [Str
     var isConfirmed: Bool
     var recurrenceRaw: String
     var reminderDays: Int
+    var reminderTimeMinutes: Int?
     var occurrencesRemaining: Int?
     var finalOccurrenceKopecks: Int64?
     init(title: String, amount: Money, dueDate: Date, kind: ScheduledItem.Kind = .obligation,
@@ -302,8 +303,12 @@ private func applyingImportCategory(_ transaction: Transaction, categories: [Str
          occurrencesRemaining: Int? = nil, finalOccurrenceAmount: Money? = nil) {
         id = UUID(); self.title = title; amountKopecks = amount.kopecks; self.dueDate = dueDate
         kindRaw = kind.rawValue; isConfirmed = true; recurrenceRaw = recurrence.rawValue
-        self.reminderDays = reminderDays; self.occurrencesRemaining = occurrencesRemaining
+        self.reminderDays = reminderDays; self.reminderTimeMinutes = nil
+        self.occurrencesRemaining = occurrencesRemaining
         finalOccurrenceKopecks = finalOccurrenceAmount?.kopecks
+    }
+    var effectiveReminderTimeMinutes: Int {
+        reminderTimeMinutes ?? ReminderClock.minutes(in: dueDate)
     }
     var scheduled: ScheduledItem {
         ScheduledItem(id: id, title: title, amount: Money(kopecks: amountKopecks), dueDate: dueDate,
@@ -641,7 +646,8 @@ private struct RootView: View {
         var values = planItems.map { item in
             ["plan", item.id.uuidString, item.title, String(item.amountKopecks),
              String(item.dueDate.timeIntervalSince1970.bitPattern), item.kindRaw, item.recurrenceRaw,
-             String(item.reminderDays), item.occurrencesRemaining.map(String.init) ?? "infinite",
+             String(item.reminderDays), item.reminderTimeMinutes.map(String.init) ?? "legacy-time",
+             item.occurrencesRemaining.map(String.init) ?? "infinite",
              item.finalOccurrenceKopecks.map(String.init) ?? "no-final"].joined(separator: "|")
         }
         values += settlementTransactions.map { transaction in
@@ -1241,7 +1247,9 @@ private struct AccountsOverviewView: View {
         }
 
         let calculationStatus = item.occurrencesRemaining == 0 ? "Не влияет на прогноз" : item.isConfirmed ? "В расчёте" : "Не учитывается"
-        let reminder = item.reminderDays > 0 ? "Напоминание за \(item.reminderDays) дн." : nil
+        let reminderTime = ReminderClock.date(minutes: item.effectiveReminderTimeMinutes, on: .now)?
+            .formatted(date: .omitted, time: .shortened) ?? "—"
+        let reminder = item.reminderDays > 0 ? "Напоминание за \(item.reminderDays) дн. · \(reminderTime)" : nil
         return ([kind, dateDetails, calculationStatus] + [reminder].compactMap { $0 })
             .joined(separator: " · ")
     }
@@ -1423,7 +1431,8 @@ private struct AccountsOverviewView: View {
                 continue
             }
             PaymentReminderScheduler.schedule(title: item.title, dueDate: item.dueDate,
-                amount: item.scheduled.amount, daysBefore: item.reminderDays, recurrence: recurrence,
+                amount: item.scheduled.amount, daysBefore: item.reminderDays,
+                reminderTimeMinutes: item.reminderTimeMinutes, recurrence: recurrence,
                 occurrencesRemaining: item.occurrencesRemaining,
                 finalOccurrenceAmount: item.scheduled.finalOccurrenceAmount,
                 settlements: settlements, kind: item.scheduled.kind, id: item.id)
@@ -1731,6 +1740,7 @@ private actor LocalStatementImportWriter {
                     dueDate: candidate.nextDate, kind: .subscription,
                     recurrence: candidate.recurrence, reminderDays: 1)
                 item.id = reminder.id
+                item.reminderTimeMinutes = ReminderClock.defaultMinutes
                 modelContext.insert(item)
             }
             try modelContext.save()
@@ -3902,6 +3912,7 @@ private struct EditPlanItemView: View {
     @State private var confirmedInForecast = true
     @State private var recurrence: ScheduledItem.Recurrence = .none
     @State private var reminderDays = 0
+    @State private var reminderTimeMinutes = ReminderClock.defaultMinutes
     @State private var storedKindWasUnrecognized = false
     @State private var storedRecurrenceWasUnrecognized = false
     @State private var userChoseKind = false
@@ -3942,11 +3953,7 @@ private struct EditPlanItemView: View {
                 Text("Периодичность сохранённого плана не распознана. Выбери подходящий повтор вручную.")
                     .font(.footnote).foregroundStyle(.orange)
             }
-            Picker("Напомнить заранее", selection: $reminderDays) {
-                Text("Не напоминать").tag(0)
-                Text("За день").tag(1)
-                Text("За два дня").tag(2)
-            }
+            ReminderFields(daysBefore: $reminderDays, minutes: $reminderTimeMinutes)
         }
         .navigationTitle("Изменить план")
         .saveFailureAlert($saveError)
@@ -3982,6 +3989,7 @@ private struct EditPlanItemView: View {
                     item.isConfirmed = kind == .debtCollection ? confirmedInForecast : item.isConfirmed
                     item.recurrenceRaw = recurrence.rawValue
                     item.reminderDays = reminderDays
+                    item.reminderTimeMinutes = reminderTimeMinutes
                 }
                 dismiss()
             } catch {
@@ -4001,6 +4009,7 @@ private struct EditPlanItemView: View {
             confirmedInForecast = item.isConfirmed
             recurrence = storedRecurrence ?? .none
             reminderDays = item.reminderDays
+            reminderTimeMinutes = item.effectiveReminderTimeMinutes
         }
     }
 }
@@ -5219,6 +5228,43 @@ private struct BrandLockup: View {
     }
 }
 
+private enum ReminderClock {
+    static let defaultMinutes = 9 * 60
+
+    static func minutes(in date: Date, calendar: Calendar = .current) -> Int {
+        calendar.component(.hour, from: date) * 60 + calendar.component(.minute, from: date)
+    }
+
+    static func date(minutes: Int, on day: Date, calendar: Calendar = .current) -> Date? {
+        guard (0..<1440).contains(minutes) else { return nil }
+        return calendar.date(bySettingHour: minutes / 60, minute: minutes % 60, second: 0, of: day)
+    }
+}
+
+private struct ReminderFields: View {
+    @Binding var daysBefore: Int
+    @Binding var minutes: Int
+
+    private var selectedTime: Binding<Date> {
+        Binding(get: { ReminderClock.date(minutes: minutes, on: .now) ?? .now },
+                set: { minutes = ReminderClock.minutes(in: $0) })
+    }
+
+    var body: some View {
+        Picker("Напомнить заранее", selection: $daysBefore) {
+            Text("Не напоминать").tag(0)
+            Text("За день").tag(1)
+            Text("За два дня").tag(2)
+        }
+        if daysBefore > 0 {
+            DatePicker("Время напоминания", selection: selectedTime, displayedComponents: .hourAndMinute)
+                .accessibilityIdentifier("reminder.time")
+            Text("По местному времени iPhone. Если выбранное время уже прошло, напоминание для этой даты пропускается.")
+                .font(.footnote).foregroundStyle(.secondary)
+        }
+    }
+}
+
 @MainActor
 private enum PaymentReminderScheduler {
     static let stateDidChange = Notification.Name("MoneyWiseReminderScheduleStateDidChange")
@@ -5231,7 +5277,8 @@ private enum PaymentReminderScheduler {
         NotificationCenter.default.post(name: stateDidChange, object: nil)
     }
 
-    static func schedule(title: String, dueDate: Date, amount: Money, daysBefore: Int, recurrence: ScheduledItem.Recurrence,
+    static func schedule(title: String, dueDate: Date, amount: Money, daysBefore: Int,
+                         reminderTimeMinutes: Int? = nil, recurrence: ScheduledItem.Recurrence,
                          occurrencesRemaining: Int? = nil, finalOccurrenceAmount: Money? = nil,
                          settlements: [ScheduledSettlement] = [], kind: ScheduledItem.Kind = .obligation, id: UUID) {
         let generation = UUID()
@@ -5252,20 +5299,31 @@ private enum PaymentReminderScheduler {
                 }
                 let now = Date.now
                 let calendar = Calendar.current
-                guard let minimumDueDate = calendar.date(byAdding: .day, value: daysBefore, to: now) else { return }
+                guard let minimumDay = calendar.date(byAdding: .day, value: daysBefore, to: now) else { return }
+                let minimumDueDate = calendar.startOfDay(for: minimumDay)
+                let minutes = reminderTimeMinutes ?? ReminderClock.minutes(in: dueDate, calendar: calendar)
+                guard (0..<1440).contains(minutes) else {
+                    failedScheduleIDs.insert(id)
+                    publishStateChange()
+                    return
+                }
+                func notificationDate(for occurrence: Date) -> Date? {
+                    guard let day = calendar.date(byAdding: .day, value: -daysBefore, to: occurrence) else { return nil }
+                    return ReminderClock.date(minutes: minutes, on: day, calendar: calendar)
+                }
                 let item = ScheduledItem(id: id, title: title, amount: amount, dueDate: dueDate,
                     kind: kind, recurrence: recurrence, occurrencesRemaining: occurrencesRemaining,
                     finalOccurrenceAmount: finalOccurrenceAmount)
                 guard var nextDue = ScheduledSettlementPolicy.firstUnsettledOccurrence(onOrAfter: minimumDueDate,
                         of: item, settlements: settlements, calendar: calendar) else { return }
-                var reminderDate = calendar.date(byAdding: .day, value: -daysBefore, to: nextDue)
+                var reminderDate = notificationDate(for: nextDue)
                 // A same-day reminder may already have passed by the time the app becomes active.
                 if reminderDate.map({ $0 <= now }) == true {
                     guard let advanced = ScheduledSettlementPolicy.firstUnsettledOccurrence(
                         onOrAfter: Calendar.current.date(byAdding: .day, value: 1, to: nextDue) ?? nextDue,
                         of: item, settlements: settlements, calendar: calendar) else { return }
                     nextDue = advanced
-                    reminderDate = calendar.date(byAdding: .day, value: -daysBefore, to: nextDue)
+                    reminderDate = notificationDate(for: nextDue)
                 }
                 guard let reminderDate, reminderDate > now else { return }
                 let content = UNMutableNotificationContent()
@@ -5325,6 +5383,7 @@ private struct AddDebtView: View {
     @State private var payment = ""
     @State private var firstPaymentDate = Calendar.current.date(byAdding: .day, value: 30, to: .now) ?? .now
     @State private var reminderDays = 0
+    @State private var reminderTimeMinutes = ReminderClock.defaultMinutes
     @State private var saveError: String?
     var body: some View {
         Form {
@@ -5339,11 +5398,7 @@ private struct AddDebtView: View {
                 TextField(direction == .owedByMe ? "Остаток моего долга, ₽" : "Остаток долга мне, ₽", text: $balance).keyboardType(.decimalPad)
                 TextField("Платёж в месяц, ₽", text: $payment).keyboardType(.decimalPad)
                 DatePicker("Первый платёж", selection: $firstPaymentDate, in: Date()..., displayedComponents: .date)
-                Picker("Напомнить заранее", selection: $reminderDays) {
-                    Text("Не напоминать").tag(0)
-                    Text("За день").tag(1)
-                    Text("За два дня").tag(2)
-                }
+                ReminderFields(daysBefore: $reminderDays, minutes: $reminderTimeMinutes)
                 if direction == .owedToMe {
                     Toggle("Подтверждено для прогноза", isOn: $confirmedInForecast)
                     Text("Не включай возврат в расчёт, пока дата поступления не согласована.")
@@ -5379,6 +5434,7 @@ private struct AddDebtView: View {
                               firstPaymentDate: firstPaymentDate, planItemID: plan.id, direction: direction)
         context.insert(debt)
         plan.reminderDays = reminderDays
+        plan.reminderTimeMinutes = reminderTimeMinutes
         do {
             try DebtChange.append(to: debt, plan: plan, kind: .created, before: nil)
             try context.save()
@@ -5573,6 +5629,7 @@ private struct EditDebtView: View {
     @State private var payment = ""
     @State private var nextPaymentDate = Date()
     @State private var reminderDays = 0
+    @State private var reminderTimeMinutes = ReminderClock.defaultMinutes
     @State private var showRepayment = false
     @State private var saveError: String?
 
@@ -5581,6 +5638,7 @@ private struct EditDebtView: View {
         Money.parseRubles(balance).map { Money(rubles: $0).kopecks } != debt.balanceKopecks ||
         Money.parseRubles(payment).map { Money(rubles: $0).kopecks } != debt.paymentKopecks ||
         nextPaymentDate != debt.firstPaymentDate || reminderDays != (plan?.reminderDays ?? 0) ||
+        reminderTimeMinutes != (plan?.effectiveReminderTimeMinutes ?? ReminderClock.defaultMinutes) ||
         confirmedInForecast != (plan?.isConfirmed ?? false)
     }
 
@@ -5622,11 +5680,7 @@ private struct EditDebtView: View {
                     TextField("Платёж в месяц, ₽", text: $payment).keyboardType(.decimalPad)
                 }
                 DatePicker("Следующий платёж", selection: $nextPaymentDate, in: Date()..., displayedComponents: .date)
-                Picker("Напомнить заранее", selection: $reminderDays) {
-                    Text("Не напоминать").tag(0)
-                    Text("За день").tag(1)
-                    Text("За два дня").tag(2)
-                }
+                ReminderFields(daysBefore: $reminderDays, minutes: $reminderTimeMinutes)
                 if direction == .owedToMe {
                     Toggle("Подтверждено для прогноза", isOn: $confirmedInForecast)
                     Text("Включай только согласованную дату возврата; это будущее поступление, не деньги на счёте сейчас.")
@@ -5658,6 +5712,7 @@ private struct EditDebtView: View {
             payment = NSDecimalNumber(decimal: Money(kopecks: debt.paymentKopecks).decimalRubles).stringValue
             nextPaymentDate = debt.firstPaymentDate
             reminderDays = plan?.reminderDays ?? 0
+            reminderTimeMinutes = plan?.effectiveReminderTimeMinutes ?? ReminderClock.defaultMinutes
             confirmedInForecast = plan?.isConfirmed ?? false
     }
 
@@ -5730,6 +5785,7 @@ private struct EditDebtView: View {
         planItem.isConfirmed = direction == .owedByMe || confirmedInForecast
         planItem.recurrenceRaw = ScheduledItem.Recurrence.monthly.rawValue
         planItem.reminderDays = reminderDays
+        planItem.reminderTimeMinutes = reminderTimeMinutes
         planItem.occurrencesRemaining = debtBalance == .zero ? 0 : nil
         planItem.finalOccurrenceKopecks = nil
 
@@ -5754,6 +5810,7 @@ private struct AddPlanItemView: View {
     @State private var confirmedInForecast = false
     @State private var recurrence: ScheduledItem.Recurrence = .none
     @State private var reminderDays = 0
+    @State private var reminderTimeMinutes = ReminderClock.defaultMinutes
     @State private var saveError: String?
     var body: some View {
         Form {
@@ -5782,11 +5839,7 @@ private struct AddPlanItemView: View {
                     Text("Каждый месяц").tag(ScheduledItem.Recurrence.monthly)
                     Text("Каждый год").tag(ScheduledItem.Recurrence.yearly)
                 }
-                Picker("Напомнить заранее", selection: $reminderDays) {
-                    Text("Не напоминать").tag(0)
-                    Text("За день").tag(1)
-                    Text("За два дня").tag(2)
-                }
+                ReminderFields(daysBefore: $reminderDays, minutes: $reminderTimeMinutes)
             }
             Section { Text("Взносы в цели можно временно перенести при проверке покупки. Обязательства, подписки и долги защищают расчёт.").font(.footnote).foregroundStyle(.secondary) }
         }
@@ -5801,6 +5854,7 @@ private struct AddPlanItemView: View {
         }
         let item = StoredPlanItem(title: title, amount: Money(rubles: parsed), dueDate: date,
                                   kind: kind, recurrence: recurrence, reminderDays: reminderDays)
+        item.reminderTimeMinutes = reminderTimeMinutes
         item.isConfirmed = kind != .debtCollection || confirmedInForecast
         context.insert(item)
         do {

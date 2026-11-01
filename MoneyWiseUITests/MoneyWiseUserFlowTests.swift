@@ -247,7 +247,7 @@ extension MoneyWiseUserFlowTests {
             addPlan.tap()
             XCTAssertTrue(app.navigationBars["Добавить в план"].waitForExistence(timeout: 5))
 
-            let title = app.textFields["Например: дорога"]
+            let title = app.textFields["Например: дорога или возврат долга"]
             title.tap()
             title.typeText("Тестовая подписка")
             let amount = app.textFields["Сумма, ₽"]

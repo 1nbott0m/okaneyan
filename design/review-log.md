@@ -99,3 +99,7 @@ Pre-change capture, first changed-target acceptance and a justified clearance re
 ## 2026-10-31 — Import preview/editor correction
 
 - Reviewed actual native original/renamed operation, failed next-rule preview and final title/category/comment/source-rule screens. D1 native forms retained; no new assets. Supported system-picker/account CSV flow passed 1/1. Final exact-amount saved-category readback passed 1/1; combined write-flow retained with its one older-row selector failure. SQLite establishes persistence and malformed/duplicate outcomes. Scoped G2/G4 evidence; G3 independent critique NOT TESTED. See `research/visual-gap-audit.md` and `research/evidence/2026-10-31/import-rule-persistence-readback.json`.
+
+## 2026-11-01 — Native reminder clock
+
+Final completion TЗ §7.7 requires an editable time absent from the prior native form. Added stock clock selection using existing D1 styling and an optional persisted minute-of-day. Actual native before/after, plan creation/default, save/relaunch, disabling/queue and largest text have scoped evidence under `research/evidence/2026-11-01/`. Payment/receivable banners delivered after app termination in the isolated synthetic fixture. Financial fields remain unchanged. G2/G4 scoped; G3 independent critique NOT TESTED. No web notification editor exists, and no overall design-DONE claim is made.

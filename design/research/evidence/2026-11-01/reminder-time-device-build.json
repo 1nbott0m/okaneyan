@@ -1,0 +1,15 @@
+{
+  "configuration": "Release",
+  "platform": "iphoneos",
+  "architecture": "arm64",
+  "build": "succeeded",
+  "signed": false,
+  "physicalDeviceVerified": false,
+  "installableAsDelivered": false,
+  "bundleID": "com.personal.moneywise",
+  "minimumOSVersion": "17.0",
+  "archive": "work/device-builds/okaneyan-reminder-time-unsigned-arm64.zip",
+  "archiveSHA256": "6cfb4af7a4cb1175403aeadbc8c315d73f86c6c1cbcdafcca9762b65ebce7bae",
+  "log": "/tmp/moneywise-reminder-time-device-release.log",
+  "deviceInventory": "simulators only; 0 valid signing identities on 2026-11-01"
+}

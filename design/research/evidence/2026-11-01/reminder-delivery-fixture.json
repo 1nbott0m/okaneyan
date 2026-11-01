@@ -1,0 +1,18 @@
+{
+  "fixture": "synthetic isolated Simulator store; normal scheduler, no push injection or time override",
+  "fireUnix": 1793504460,
+  "rows": [
+    {
+      "id": "CC682F1A-4677-4E81-864A-DE70468ACB07",
+      "kind": "obligation",
+      "daysBefore": 1,
+      "dueUnix": 1793590860
+    },
+    {
+      "id": "FAB5EBA7-2478-402B-882F-20AC6094EEDD",
+      "kind": "debtCollection",
+      "daysBefore": 2,
+      "dueUnix": 1793677260
+    }
+  ]
+}

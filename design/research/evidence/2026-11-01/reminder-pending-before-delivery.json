@@ -1,0 +1,34 @@
+[
+  {
+    "AppNotificationIdentifier": "payment-CC682F1A-4677-4E81-864A-DE70468ACB07",
+    "AppNotificationTitle": "Скоро запланированный платёж",
+    "AppNotificationMessage": "Открой приложение и проверь план расходов.",
+    "TriggerDateComponents": {
+      "NS.hour": 6,
+      "NS.day": 1,
+      "NS.leapMonth": 0,
+      "NS.minute": 41,
+      "NS.repeatedDay": false,
+      "NS.year": 2026,
+      "NS.month": 11
+    },
+    "UNNotificationTriggerType": "Calendar",
+    "TriggerRepeats": false
+  },
+  {
+    "AppNotificationIdentifier": "payment-FAB5EBA7-2478-402B-882F-20AC6094EEDD",
+    "AppNotificationTitle": "Скоро ожидаемый возврат",
+    "AppNotificationMessage": "Открой приложение и проверь план поступления.",
+    "TriggerDateComponents": {
+      "NS.hour": 6,
+      "NS.day": 1,
+      "NS.leapMonth": 0,
+      "NS.minute": 41,
+      "NS.repeatedDay": false,
+      "NS.year": 2026,
+      "NS.month": 11
+    },
+    "UNNotificationTriggerType": "Calendar",
+    "TriggerRepeats": false
+  }
+]

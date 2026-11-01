@@ -1,0 +1,30 @@
+{
+  "runtime": "iOS 27.0 Simulator, iPhone 18 Pro",
+  "fixture": "Two isolated synthetic plan rows with due dates 1/2 days after the near-future trigger. No push injection, mock scheduler or clock override.",
+  "applicationStateAtDelivery": "terminated using simctl before deadline",
+  "delivered": [
+    {
+      "identifier": "payment-FAB5EBA7-2478-402B-882F-20AC6094EEDD",
+      "title": "Скоро ожидаемый возврат",
+      "body": "Открой приложение и проверь план поступления.",
+      "deliveredAtUnix": 1793504460.0,
+      "triggerType": "Calendar",
+      "presentedAlert": true
+    },
+    {
+      "identifier": "payment-CC682F1A-4677-4E81-864A-DE70468ACB07",
+      "title": "Скоро запланированный платёж",
+      "body": "Открой приложение и проверь план расходов.",
+      "deliveredAtUnix": 1793504460.0,
+      "triggerType": "Calendar",
+      "presentedAlert": true
+    }
+  ],
+  "pendingAfterDelivery": [],
+  "visualEvidence": "ios-reminder-trigger-terminated-app.png",
+  "physicalDeviceVerified": false,
+  "localVideo": {
+    "path": "work/reminder-verification/reminder-delivery.mov",
+    "sha256": "f11f169e68cbdf3daedf53ccb2a628ea5391cf2b982b49adb13bdddfa3336b56"
+  }
+}

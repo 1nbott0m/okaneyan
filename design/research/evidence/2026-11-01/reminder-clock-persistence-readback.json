@@ -1,0 +1,36 @@
+{
+  "legacyMigration": "two pre-field plan records retained",
+  "financialFieldsUnchanged": true,
+  "planCount": 2,
+  "timeSettings": [
+    {
+      "title": "Синтетический план доставки obligation",
+      "daysBefore": 1,
+      "minutes": 585
+    },
+    {
+      "title": "Синтетический план доставки debtCollection",
+      "daysBefore": 2,
+      "minutes": null
+    }
+  ],
+  "pendingCount": 1,
+  "pending": [
+    {
+      "AppNotificationIdentifier": "payment-CC682F1A-4677-4E81-864A-DE70468ACB07",
+      "AppNotificationTitle": "Скоро запланированный платёж",
+      "TriggerDateComponents": {
+        "NS.hour": 9,
+        "NS.day": 1,
+        "NS.leapMonth": 0,
+        "NS.minute": 45,
+        "NS.repeatedDay": false,
+        "NS.year": 2026,
+        "NS.month": 11
+      }
+    }
+  ],
+  "accounts": 0,
+  "transactions": 0,
+  "physicalDeviceVerified": false
+}
