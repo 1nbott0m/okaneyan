@@ -1,0 +1,46 @@
+{
+  "checkedAt": "2026-11-01T03:28:25.914827+00:00",
+  "surface": "separate local image gallery, not native product",
+  "catalog": {
+    "uniqueImages": 432,
+    "sourceFiles": 1277,
+    "categories": {
+      "references": 60,
+      "ios": 62,
+      "web": 250,
+      "brand": 32,
+      "other": 28
+    },
+    "originalHashesAndAllLocalMediaPaths": "verified, no missing files",
+    "originalSources": "unchanged"
+  },
+  "browser": {
+    "url": "http://localhost:5176/",
+    "search": "Russian debt keyword returns 10 images",
+    "format": "SVG returns 5, PNG returns 427",
+    "sort": "name, size and newest controls exercised; newest first image matches source mtime ordering",
+    "pagination": "48 to 96 tiles, focus moves to first newly added tile",
+    "viewer": "original PNG and SVG rendered; next arrow, zoom, light background, Escape close and focus restoration exercised",
+    "empty": "zero results and reset exercised",
+    "responsive": {
+      "390x844": "two columns, no page overflow, close/next visible in viewer",
+      "768x1024": "brand group, no page overflow",
+      "1440x1000": "48 cards, visible thumbnails loaded, no page overflow"
+    },
+    "viewportOverride": "reset",
+    "tab": "marked deliverable"
+  },
+  "limitations": [
+    "Content labels are discovery heuristics, not owner approval.",
+    "Gallery catalogs images only; videos and source documents are not indexed.",
+    "Dates are primary source file modification times.",
+    "Native product acceptance is separate.",
+    "Independent G3 critique and screen-reader runtime not performed."
+  ],
+  "evidence": [
+    "desktop-1440.png",
+    "mobile-390.png",
+    "viewer-mobile-390.png",
+    "tablet-768.png"
+  ]
+}

@@ -25,3 +25,7 @@
 - Before adding any CoFo file, retain proof of app use/embedding rights and run a glyph specimen for Cyrillic, ₽, №, minus sign and long tabular values on web and iOS.
 - The three owner-selected Google Fonts binaries are pinned to Google Fonts commit `9862abc066c9b83bf84c3e8ed1fc2d8d48f9bbf0`; required glyphs, variable weight ranges and number features were verified in those exact files. They are present unchanged in `preview/fonts/`, each with a complete OFL notice, and have PBXBuildFile entries in the iOS app Resources phase. Chromium confirms all three fonts load across mobile/desktop and dark/light. Native bundle/render verification remains open because the full Xcode toolchain is unavailable. Keep variable files unchanged and retain their licenses.
 - Record exact package/library licenses and versions before adopting an external motion implementation; use independent native SwiftUI implementations for iOS.
+
+## 2026-11-01 — Local gallery reuse
+
+`gallery/build_gallery.py` copies the already recorded local Onest and Oswald binaries plus their OFL notices from `preview/fonts/` unchanged. No new typeface, license or remote media is introduced. The generated gallery copies existing project/worktree images locally without modifying originals or changing their research/approval status. Generated media/fonts/catalog are excluded from Git; rebuild reads the available source directories.
