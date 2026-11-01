@@ -598,10 +598,11 @@ struct ProtectedReservesView: View {
     @Query(sort: \StoredProtectedReserve.createdAt) private var reserves: [StoredProtectedReserve]
     @Query(sort: \StoredGoal.title) private var goals: [StoredGoal]
     @Query(sort: \StoredPlanItem.dueDate) private var planItems: [StoredPlanItem]
-    let balance: Money
+    let balance: Money?
     let minimumReserve: Money
     let protectedTotals: ProtectedReserveTotals
     let namespace: Namespace.ID
+    let onConfigureBalance: () -> Void
     @State private var editingReserve: StoredProtectedReserve?
     @State private var isAdding = false
     @State private var undoRecord: ProtectedReserveUndo?
@@ -610,7 +611,7 @@ struct ProtectedReservesView: View {
 
     private var namedTotal: Money { protectedTotals.named }
     private var protectedTotal: Money { minimumReserve + protectedTotals.named + protectedTotals.goals }
-    private var shortfall: Money { max(.zero, protectedTotal - balance) }
+    private var shortfall: Money { balance.map { max(.zero, protectedTotal - $0) } ?? .zero }
     private var shortfallWarning: String {
         hideAmounts
             ? "Защищённые суммы превышают текущий баланс. Проверь суммы или обнови остатки."
@@ -743,10 +744,12 @@ struct ProtectedReservesView: View {
                 Image(systemName: "lock.fill").font(.system(size: 20, weight: .medium))
                     .foregroundStyle(AppPalette.softAccent).accessibilityHidden(true)
             }
-            ReserveAllocationRail(balance: balance, amounts: [minimumReserve, namedTotal, protectedTotals.goals])
-                .frame(height: 54)
-                .animation(reduceMotion ? nil : .spring(response: 0.3, dampingFraction: 0.9), value: commitPulse)
-                .accessibilityHidden(true)
+            if let balance {
+                ReserveAllocationRail(balance: balance, amounts: [minimumReserve, namedTotal, protectedTotals.goals])
+                    .frame(height: 54)
+                    .animation(reduceMotion ? nil : .spring(response: 0.3, dampingFraction: 0.9), value: commitPulse)
+                    .accessibilityHidden(true)
+            }
             ViewThatFits(in: .horizontal) {
                 HStack(alignment: .top) {
                     reserveBreakdown("Минимум", value: minimumReserve, color: AppPalette.heroMuted)
@@ -765,18 +768,36 @@ struct ProtectedReservesView: View {
             HStack {
                 Text("Баланс счетов").font(.footnote).foregroundStyle(AppPalette.heroMuted)
                 Spacer(minLength: 8)
-                FinanceSensitiveAmount(value: balance.formatted)
-                    .font(AppTypography.amount(15, weight: .semibold)).foregroundStyle(AppPalette.heroInk)
+                Group {
+                    if let balance { FinanceSensitiveAmount(value: balance.formatted).accessibilityIdentifier("reserve.accountBalance") }
+                    else { Text("Нет баланса").accessibilityIdentifier("reserve.accountBalance") }
+                }
+                .font(AppTypography.amount(15, weight: .semibold)).foregroundStyle(AppPalette.heroInk)
             }
             HStack {
                 Text("Вне резервов").font(.footnote).foregroundStyle(AppPalette.heroMuted)
                 Spacer(minLength: 8)
-                FinanceSensitiveAmount(value: max(.zero, balance - protectedTotal).formatted)
-                    .font(AppTypography.amount(17, weight: .semibold)).foregroundStyle(AppPalette.heroInk)
-                    .accessibilityIdentifier("reserve.outsideReserves")
+                Group {
+                    if let balance { FinanceSensitiveAmount(value: max(.zero, balance - protectedTotal).formatted).accessibilityIdentifier("reserve.outsideReserves") }
+                    else { Text("Нет оценки").accessibilityIdentifier("reserve.outsideReserves") }
+                }
+                .font(AppTypography.amount(17, weight: .semibold)).foregroundStyle(AppPalette.heroInk)
             }
-            Text("До учёта будущих платежей и обычных расходов.")
-                .font(.caption).foregroundStyle(AppPalette.heroMuted)
+            if balance == nil {
+                Text("Подтверди баланс, чтобы сравнить его с резервами.")
+                    .font(.caption).foregroundStyle(AppPalette.heroMuted)
+                Button(action: onConfigureBalance) {
+                    Text("Указать баланс")
+                        .font(AppTypography.ui(15, weight: .semibold)).foregroundStyle(AppPalette.hero)
+                        .frame(maxWidth: .infinity, minHeight: 44)
+                        .background(AppPalette.accent, in: RoundedRectangle(cornerRadius: 12, style: .continuous))
+                }
+                .buttonStyle(.plain)
+                .accessibilityIdentifier("reserve.configureBalance")
+            } else {
+                Text("До учёта будущих платежей и обычных расходов.")
+                    .font(.caption).foregroundStyle(AppPalette.heroMuted)
+            }
         }
         .padding(20)
         .background(LinearGradient(colors: [Color(white: 0.18), AppPalette.hero, Color(white: 0.075)],

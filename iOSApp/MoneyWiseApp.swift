@@ -1039,9 +1039,10 @@ private struct RootView: View {
                                      namespace: featureTransitionNamespace)
             }
             homeShortcut("Резервы", symbol: "lock.shield.fill", id: "reserve-mark") {
-                ProtectedReservesView(balance: snapshot.currentBalance,
+                ProtectedReservesView(balance: snapshot.bankBalances.isEmpty ? nil : snapshot.currentBalance,
                     minimumReserve: snapshot.protectedReserve, protectedTotals: effectiveReserveTotals,
-                    namespace: featureTransitionNamespace)
+                    namespace: featureTransitionNamespace,
+                    onConfigureBalance: { activeSheet = .settings })
             }
             homeShortcut("Структура", symbol: "list.bullet.indent", id: "gravity-mark") {
                 FinancialGravityView(balance: snapshot.currentBalance,

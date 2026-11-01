@@ -1,0 +1,21 @@
+{
+  "fixture": "Isolated synthetic Reminder simulator; cached 10000 RUB deliberately marked unconfirmed before flow. No account.",
+  "settings": [
+    [
+      1,
+      1000000,
+      0
+    ]
+  ],
+  "accounts": 0,
+  "goals": [
+    [
+      "Резервная цель",
+      200000,
+      100000,
+      0
+    ]
+  ],
+  "transactionCount": 1,
+  "scope": "Unknown balance → existing Settings callback → explicit zero with real shortfall → 10000 RUB → relaunch. No purchase verdict, ledger or MoneyCore change."
+}
