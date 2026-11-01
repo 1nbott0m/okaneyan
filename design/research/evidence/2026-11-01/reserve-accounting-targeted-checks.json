@@ -1,0 +1,47 @@
+{
+  "results" : [
+    {
+      "actualKopecks" : 50000,
+      "expectedKopecks" : 50000,
+      "passed" : true,
+      "scenario" : "incoming link retains entire reserve"
+    },
+    {
+      "actualKopecks" : 0,
+      "expectedKopecks" : 0,
+      "passed" : true,
+      "scenario" : "expense link avoids duplicate protection"
+    },
+    {
+      "actualKopecks" : 50000,
+      "expectedKopecks" : 50000,
+      "passed" : true,
+      "scenario" : "expense envelope protects excess"
+    },
+    {
+      "actualKopecks" : 50000,
+      "expectedKopecks" : 50000,
+      "passed" : true,
+      "scenario" : "unconfirmed expense keeps reserve independent"
+    },
+    {
+      "actualKopecks" : 100000,
+      "expectedKopecks" : 100000,
+      "passed" : true,
+      "scenario" : "goal overlap uses saved funds once"
+    },
+    {
+      "actualKopecks" : 150000,
+      "expectedKopecks" : 150000,
+      "passed" : true,
+      "scenario" : "larger goal envelope remains protected"
+    },
+    {
+      "actualKopecks" : 50000,
+      "expectedKopecks" : 50000,
+      "passed" : true,
+      "scenario" : "removed plan keeps reserve independent"
+    }
+  ],
+  "scope" : "targeted reserve accounting only; no purchase verdict replay"
+}

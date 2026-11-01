@@ -678,6 +678,7 @@ public enum ProtectedReserveAccounting {
             guard let planMatches = validPlans[key.planID], planMatches.count == 1,
                   let plan = planMatches.first,
                   plan.isConfirmed,
+                  plan.kind != .debtCollection,
                   let occurrence = scheduledItems.first(where: { $0.id == key.planID }),
                   let occurrenceAmount = ScheduledRecurrence.amount(for: key.day, of: occurrence,
                       calendar: calendar),

@@ -103,3 +103,7 @@ Pre-change capture, first changed-target acceptance and a justified clearance re
 ## 2026-11-01 — Native reminder clock
 
 Final completion TЗ §7.7 requires an editable time absent from the prior native form. Added stock clock selection using existing D1 styling and an optional persisted minute-of-day. Actual native before/after, plan creation/default, save/relaunch, disabling/queue and largest text have scoped evidence under `research/evidence/2026-11-01/`. Payment/receivable banners delivered after app termination in the isolated synthetic fixture. Financial fields remain unchanged. G2/G4 scoped; G3 independent critique NOT TESTED. No web notification editor exists, and no overall design-DONE claim is made.
+
+## 2026-11-01 — Budget behavior / reserve-link correction
+
+Actual budget spend/edit/delete/relaunch inspected; resumed native flow passed 1/1 after correcting a test-only action label, SQLite confirms retained operation. Reserve before/after reproduced a confirmed incoming-link accounting error and corrected 0→500₽ protection. Native invalid-link warning and outgoing-only picker inspected; changed native goal/payment-association flow passed 1/1, seven targeted accounting checks passed. No new art direction/assets/motion. G2/G4 scoped evidence; independent G3 and the separate unknown-balance presentation remain open.

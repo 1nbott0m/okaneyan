@@ -1,0 +1,14 @@
+{
+  "configuration": "Release",
+  "platform": "iphoneos",
+  "architecture": "arm64",
+  "build": "succeeded",
+  "signed": false,
+  "physicalDeviceVerified": false,
+  "installableAsDelivered": false,
+  "archive": "work/device-builds/okaneyan-reserve-links-unsigned-arm64.zip",
+  "archiveSHA256": "fa9090c387881720024e6e5d19d1dca182de1b0abee89648bfe4a6122b7a7610",
+  "minimumOSVersion": "17.0",
+  "log": "/tmp/moneywise-reserve-targets-device-release.log",
+  "deviceInventory": "simulated devices only; zero valid signing identities on 2026-11-01"
+}

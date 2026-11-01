@@ -1,0 +1,6 @@
+{
+  "actualNamedReserveKopecks" : 0,
+  "correct" : false,
+  "requiredNamedReserveKopecks" : 50000,
+  "scenario" : "reserve linked to confirmed incoming plan"
+}

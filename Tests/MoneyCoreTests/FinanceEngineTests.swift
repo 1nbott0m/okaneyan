@@ -211,6 +211,15 @@ func runChecks() {
             through: horizonCalendar.date(byAdding: .day, value: 10, to: finalDate)!, calendar: horizonCalendar)
         verify(invalidOccurrenceTotals.named == Money(rubles: 150),
                "a reserve linked to a non-occurrence falls back to independent protection")
+        let incomingReservePlan = ScheduledItem(id: UUID(), title: "Ожидаемый возврат", amount: Money(rubles: 1_000),
+            dueDate: overlapDate, isConfirmed: true, kind: .debtCollection)
+        let incomingReserveTotals = ProtectedReserveAccounting.totals(goals: [], namedReserves: [
+            NamedReserveAllocation(amount: Money(rubles: 500), scheduledItemID: incomingReservePlan.id,
+                occurrenceDate: overlapDate)
+        ], scheduledItems: [incomingReservePlan], settlements: [], from: horizonNow, through: overlapDate,
+            calendar: horizonCalendar)
+        verify(incomingReserveTotals.named == Money(rubles: 500),
+               "an incoming plan never consumes the protection of a linked cash reserve")
         let missingGoalTotals = ProtectedReserveAccounting.totals(goals: [], namedReserves: [
             NamedReserveAllocation(amount: Money(rubles: 250), goalID: UUID())
         ], scheduledItems: [], settlements: [], from: horizonNow, through: finalDate,

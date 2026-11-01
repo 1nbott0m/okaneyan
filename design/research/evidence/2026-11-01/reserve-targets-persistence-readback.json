@@ -1,0 +1,37 @@
+{
+  "scope": "isolated synthetic Simulator fixture after actual reserve/goal UI edits",
+  "balanceAndIncomeSettings": [
+    [
+      1000000,
+      0,
+      100000,
+      1
+    ]
+  ],
+  "reserves": [
+    [
+      "Резерв · входящий план",
+      50000,
+      "",
+      "CC682F1A46774E81864ADE70468ACB07",
+      815199661.451513
+    ]
+  ],
+  "goals": [
+    [
+      "Резервная цель",
+      200000,
+      100000,
+      0
+    ]
+  ],
+  "operations": [
+    [
+      40000,
+      "groceries"
+    ]
+  ],
+  "planFinancialFieldsUnchanged": true,
+  "budgetCount": 0,
+  "accountCount": 0
+}

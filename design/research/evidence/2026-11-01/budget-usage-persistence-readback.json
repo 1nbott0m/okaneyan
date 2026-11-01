@@ -1,0 +1,12 @@
+{
+  "budgetCount": 0,
+  "operationCount": 1,
+  "purchase": [
+    [
+      "Бюджет · продуктовая покупка",
+      40000,
+      "groceries"
+    ]
+  ],
+  "plans": 2
+}

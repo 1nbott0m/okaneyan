@@ -821,6 +821,9 @@ struct ProtectedReservesView: View {
             return "Учитывается вместе с целью «\(goal.title)»"
         }
         if let id = reserve.linkedPlanItemID, let item = planItems.first(where: { $0.id == id }) {
+            if item.scheduled.kind == .debtCollection {
+                return "Связь с поступлением · деньги защищены отдельно"
+            }
             let date = reserve.linkedOccurrenceDate?.formatted(date: .abbreviated, time: .omitted) ?? "дата не выбрана"
             return "Для платежа «\(item.title)» · \(date)"
         }
@@ -953,6 +956,16 @@ private struct ProtectedReserveEditor: View {
     @State private var occurrenceDate: Date
     @State private var validationMessage: String?
 
+    private static func canBackReserve(_ item: StoredPlanItem) -> Bool {
+        item.hasValidFinancialData && item.isConfirmed && item.amountKopecks > 0 &&
+            item.occurrencesRemaining != 0 && item.scheduled.kind != .debtCollection
+    }
+
+    private var eligiblePlanItems: [StoredPlanItem] { planItems.filter { Self.canBackReserve($0) } }
+    private var unavailableSelectedPlan: StoredPlanItem? {
+        planItems.first { $0.id == selectedPlanItemID && !Self.canBackReserve($0) }
+    }
+
     init(title: String, initialTitle: String, initialAmount: Money, initialGoalID: UUID?,
          initialPlanItemID: UUID?, initialOccurrenceDate: Date, goals: [StoredGoal],
          planItems: [StoredPlanItem], saveTitle: String, onRelease: (() -> Void)? = nil,
@@ -966,7 +979,7 @@ private struct ProtectedReserveEditor: View {
         _name = State(initialValue: initialTitle)
         _amountText = State(initialValue: NSDecimalNumber(decimal: initialAmount.decimalRubles).stringValue)
         _selectedGoalID = State(initialValue: initialGoalID ?? goals.first?.id)
-        _selectedPlanItemID = State(initialValue: initialPlanItemID ?? planItems.first?.id)
+        _selectedPlanItemID = State(initialValue: initialPlanItemID ?? planItems.first(where: { Self.canBackReserve($0) })?.id)
         _occurrenceDate = State(initialValue: initialOccurrenceDate)
         _target = State(initialValue: initialGoalID.map { _ in .goal } ?? initialPlanItemID.map { _ in .occurrence } ?? .independent)
     }
@@ -993,15 +1006,26 @@ private struct ProtectedReserveEditor: View {
                             }
                         }
                     } else if target == .occurrence {
-                        if planItems.isEmpty { Text("Сначала добавь плановый платёж.").font(.footnote).foregroundStyle(.secondary) }
-                        else {
+                        if eligiblePlanItems.isEmpty && unavailableSelectedPlan == nil {
+                            Text("Сначала добавь подтверждённый плановый расход. Ожидаемое поступление не является платежом.")
+                                .font(.footnote).foregroundStyle(.secondary)
+                        } else {
                             Picker("Платёж", selection: $selectedPlanItemID) {
-                                ForEach(planItems) { item in Text(item.title).tag(Optional(item.id)) }
+                                if let unavailableSelectedPlan {
+                                    Text("\(unavailableSelectedPlan.title) · недоступен")
+                                        .tag(Optional(unavailableSelectedPlan.id)).disabled(true)
+                                }
+                                ForEach(eligiblePlanItems) { item in Text(item.title).tag(Optional(item.id)) }
                             }
-                            DatePicker("Дата списания", selection: $occurrenceDate, displayedComponents: .date)
-                            if let item = planItems.first(where: { $0.id == selectedPlanItemID }),
-                               !ScheduledRecurrence.isOccurrence(occurrenceDate, of: item.scheduled) {
-                                Text("Выбери дату одного из запланированных списаний.").font(.footnote).foregroundStyle(.orange)
+                            if unavailableSelectedPlan != nil {
+                                Text("У выбранного плана нет действующего подтверждённого расхода. Деньги защищены отдельно; выбери другой платёж или отдельный резерв.")
+                                    .font(.footnote).foregroundStyle(.orange)
+                            } else {
+                                DatePicker("Дата списания", selection: $occurrenceDate, displayedComponents: .date)
+                                if let item = eligiblePlanItems.first(where: { $0.id == selectedPlanItemID }),
+                                   !ScheduledRecurrence.isOccurrence(occurrenceDate, of: item.scheduled) {
+                                    Text("Выбери дату одного из запланированных списаний.").font(.footnote).foregroundStyle(.orange)
+                                }
                             }
                         }
                     }
@@ -1044,8 +1068,7 @@ private struct ProtectedReserveEditor: View {
                             validationMessage = "Выбери существующую цель."; return
                         }
                         if target == .occurrence {
-                            guard let planID, let item = planItems.first(where: { $0.id == planID }),
-                                  item.isConfirmed,
+                            guard let planID, let item = eligiblePlanItems.first(where: { $0.id == planID }),
                                   ScheduledRecurrence.isOccurrence(occurrenceDate, of: item.scheduled) else {
                                 validationMessage = "Выбери существующее плановое списание."; return
                             }

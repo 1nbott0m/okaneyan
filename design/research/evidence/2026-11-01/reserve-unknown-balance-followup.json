@@ -1,0 +1,8 @@
+{
+  "source": "pre-fixture isolated store backup /tmp/MoneyWiseReserveBeforeConfirmedFixture.sqlite",
+  "hasManualBalance": false,
+  "accounts": 0,
+  "nativeEvidence": "ios-reserve-invalid-incoming-choice-before.png",
+  "observed": "Reserve screen renders account balance 0 and reserve shortfall against zero when balance is unknown.",
+  "status": "confirmed presentation gap; next action, separate from the corrected incoming-link defect"
+}

@@ -1,0 +1,9 @@
+{
+  "scope": "isolated synthetic Simulator store only",
+  "arrangement": "Existing incoming plan date moved to today; normal reserve UI created a 500-ruble link. Confirmed future-income boundary and 10000-ruble manual balance arranged in SQLite to isolate accounting, not to replay accepted P0 UI.",
+  "currentCashKopecks": 1000000,
+  "expectedIncomeKopecks": 100000,
+  "futureBoundaryUnix": 1794111276.291475,
+  "expectedProtectedKopecks": 50000,
+  "expenseFollowupArrangement": "Existing synthetic obligation set to 1000 rubles on today to exercise valid expense association without a calendar-picker harness."
+}
