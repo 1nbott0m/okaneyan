@@ -270,6 +270,22 @@ private func normalizedMerchantKey(_ merchant: String) -> String {
         .joined(separator: " ")
 }
 
+/// Match the writer's newest-rule/tie policy before presenting a statement for approval.
+private func learnedImportCategories(_ rules: [StoredMerchantRule]) -> [String: Category] {
+    let latest = rules.reduce(into: [String: StoredMerchantRule]()) { result, rule in
+        if let current = result[rule.merchantKey],
+           current.updatedAt > rule.updatedAt ||
+            (current.updatedAt == rule.updatedAt && current.categoryRaw >= rule.categoryRaw) { return }
+        result[rule.merchantKey] = rule
+    }
+    return latest.compactMapValues { $0.hasValidCategory ? $0.category : nil }
+}
+
+private func applyingImportCategory(_ transaction: Transaction, categories: [String: Category]) -> Transaction {
+    guard let category = categories[normalizedMerchantKey(transaction.merchant)] else { return transaction }
+    return TransactionCategoryCorrection.applying(category, to: transaction)
+}
+
 @Model final class StoredPlanItem {
     var id: UUID
     var title: String
@@ -615,6 +631,10 @@ private struct RootView: View {
         )
     }
 
+    private var categorizedImportPreview: [Transaction] {
+        let categories = learnedImportCategories(merchantRules)
+        return importPreview.map { applyingImportCategory($0, categories: categories) }
+    }
     private var settings: StoredSettings { settingsRows.first ?? StoredSettings() }
     private var includedAccountIDs: Set<UUID> { Set(accounts.filter(\.included).map(\.id)) }
     private var reminderRefreshKey: [String] {
@@ -907,7 +927,7 @@ private struct RootView: View {
             switch sheet {
             case .settings: SettingsView(settings: getOrCreateSettings(context))
             case .addTransaction: AddTransactionView()
-            case .importPreview: ImportPreviewView(transactions: importPreview, accounts: accounts,
+            case .importPreview: ImportPreviewView(transactions: categorizedImportPreview, accounts: accounts,
                                                    existingStatuses: existingSourceStatuses,
                                                    existingProviderTransactionsByAccount: existingProviderTransactionsByAccount,
                                                    onCancel: { activeSheet = nil }, onConfirm: confirmImport)
@@ -1459,7 +1479,7 @@ private struct AccountsOverviewView: View {
                 existingProviderTransactionsByAccount = importHistory.providerTransactionsByAccount
                 activeSheet = .importPreview
             } catch {
-                importError = error.localizedDescription
+                importError = "Файл не импортирован. " + error.localizedDescription
             }
         }
     }
@@ -1637,16 +1657,7 @@ private actor LocalStatementImportWriter {
         let skippedRecurringCount = selectedRecurringCandidates.count - newRecurringCandidates.count
 
         let rules = try modelContext.fetch(FetchDescriptor<StoredMerchantRule>())
-        let learnedCategories = rules.reduce(into: [String: StoredMerchantRule]()) { latest, rule in
-            guard let current = latest[rule.merchantKey] else {
-                latest[rule.merchantKey] = rule
-                return
-            }
-            if rule.updatedAt > current.updatedAt ||
-                (rule.updatedAt == current.updatedAt && rule.categoryRaw > current.categoryRaw) {
-                latest[rule.merchantKey] = rule
-            }
-        }
+        let learnedCategories = learnedImportCategories(rules)
 
         let reminders = newRecurringCandidates.map { candidate in
             PendingImportReminder(title: candidate.title, dueDate: candidate.nextDate,
@@ -1692,11 +1703,7 @@ private actor LocalStatementImportWriter {
                 }
             }
             for transaction in newTransactions {
-                var categorized = transaction
-                let key = normalizedMerchantKey(transaction.merchant)
-                if let rule = learnedCategories[key], rule.hasValidCategory {
-                    categorized = TransactionCategoryCorrection.applying(rule.category, to: categorized)
-                }
+                let categorized = applyingImportCategory(transaction, categories: learnedCategories)
                 let storedTransaction = StoredTransaction(categorized, sourceAccountID: sourceAccountID)
                 storedTransaction.refundOfTransactionID = RefundLinkResolver.resolve(
                     refund: categorized, accountID: sourceAccountID, candidates: providerCandidates
@@ -3190,7 +3197,7 @@ private struct ImportPreviewView: View {
                         Text("Без привязки повторный импорт из другого файла может создать дубликаты. Добавь счёт и выбери его, чтобы безопасно различать источники.")
                             .font(.footnote).foregroundStyle(.orange)
                     } else {
-                        Text("Идентификаторы строк будут сформированы в контексте этого счёта. Совпадающие строки из повторной выписки пропустятся; отдельные одинаковые покупки внутри одного файла сохранятся.")
+                        Text("Повторные операции на этом счёте будут пропущены. Отдельные одинаковые покупки внутри одной выписки сохранятся.")
                             .font(.footnote).foregroundStyle(.secondary)
                     }
                     Text("Импорт добавляет историю операций, но не меняет остаток и дату его проверки. После сверки выписки обнови баланс счёта отдельно.")
@@ -3208,6 +3215,7 @@ private struct ImportPreviewView: View {
                                 Text(transaction.merchant).lineLimit(1)
                                 Text("\(transaction.date.formatted(date: .abbreviated, time: .omitted)) · \(transaction.category.title)")
                                     .font(.caption).foregroundStyle(.secondary)
+                                    .accessibilityIdentifier("import.category.\(index)")
                                 if preparedImport?.duplicateIndexes.contains(index) == true {
                                     Text("Уже в истории · пропущу при импорте")
                                         .font(.caption2).foregroundStyle(.orange)
@@ -3228,6 +3236,8 @@ private struct ImportPreviewView: View {
                     }
                 }
                 Section("Сводка импорта") {
+                    // Parsing is all-or-nothing: an invalid operation never reaches this preview.
+                    LabeledContent("Ошибок чтения операций", value: "0")
                     if let preparedImport {
                         LabeledContent("Новые операции", value: "\(preparedImport.transactions.count)")
                         LabeledContent("Совпадения", value: "\(preparedImport.duplicateCount)")
@@ -3295,7 +3305,7 @@ private struct ImportPreviewView: View {
                     }
                 }
             }
-            .navigationTitle("Предпросмотр выписки")
+            .navigationTitle("Импорт выписки")
             .onChange(of: selectedAccountID) { _, _ in
                 preparedImport = nil
                 recurringCandidates = []
@@ -3463,7 +3473,6 @@ private struct EditTransactionView: View {
     @Query private var settingsRows: [StoredSettings]
     @State private var draft: Transaction
     @State private var amountText: String
-    @State private var originalCategoryRaw: String
     @State private var applyCategoryToFuture = false
     @State private var pendingTransferCounterpartID: UUID?
     @State private var selectedPlanItemID: UUID?
@@ -3512,7 +3521,6 @@ private struct EditTransactionView: View {
             isInternalTransfer: transaction.internalTransfer, sourceID: transaction.sourceID
         ))
         _amountText = State(initialValue: NSDecimalNumber(decimal: transaction.amount.decimalRubles).stringValue)
-        _originalCategoryRaw = State(initialValue: transaction.categoryRaw)
     }
 
     var body: some View {
@@ -3608,8 +3616,13 @@ private struct EditTransactionView: View {
                     }
                 }
                 DatePicker("Дата", selection: $draft.date, displayedComponents: .date)
-                TextField("Комментарий", text: $draft.note, axis: .vertical)
-                    .lineLimit(2...4)
+                VStack(alignment: .leading, spacing: 6) {
+                    Text("Комментарий").font(.caption).foregroundStyle(.secondary)
+                    TextField("Комментарий", text: $draft.note, axis: .vertical)
+                        .lineLimit(2...4)
+                        .accessibilityLabel("Комментарий")
+                        .accessibilityIdentifier("transaction.note")
+                }
             }
             Section("Связать с планом") {
                 Picker("Плановый платёж", selection: $selectedPlanItemID) {
@@ -3640,11 +3653,15 @@ private struct EditTransactionView: View {
                     }
                 }
             }
-            if draft.kind == .purchase && draft.category.rawValue != originalCategoryRaw {
+            if draft.kind == .purchase {
                 Section("Правило для будущих операций") {
                     Toggle("Запомнить категорию для этого получателя", isOn: $applyCategoryToFuture)
-                    Text("Правило применяется только к будущим импортированным операциям с таким же названием.")
+                    Text("Правило применяется только к будущим импортированным операциям с таким же описанием.")
                         .font(.footnote).foregroundStyle(.secondary)
+                    if transaction.sourceID != nil || transaction.providerTransactionID != nil {
+                        Text("Сопоставление по исходному описанию выписки: \(transaction.originalMerchant). Переименование операции его не меняет.")
+                            .font(.footnote).foregroundStyle(.secondary)
+                    }
                 }
             }
         }
@@ -3746,6 +3763,7 @@ private struct EditTransactionView: View {
     }
 
     private func updateKind(_ kind: TransactionKind) {
+        guard kind != draft.kind else { return }
         guard kind != .adjustment else { return }
         draft.kind = kind
         draft.isInternalTransfer = false
@@ -3760,9 +3778,10 @@ private struct EditTransactionView: View {
     }
 
     private func updateCategory(_ category: Category) {
+        guard category != draft.category else { return }
         draft.category = category
         if category != .transfers { draft.isInternalTransfer = false }
-        applyCategoryToFuture = category.rawValue != originalCategoryRaw
+        applyCategoryToFuture = category.rawValue != transaction.categoryRaw
     }
 
     private func save() {
@@ -3845,7 +3864,9 @@ private struct EditTransactionView: View {
                 transaction.scheduledOccurrenceDate = newSettlement?.occurrenceDate
 
                 if applyCategoryToFuture && draft.kind == .purchase {
-                    let key = normalizedMerchantKey(draft.merchant)
+                    let ruleMerchant = transaction.sourceID != nil || transaction.providerTransactionID != nil
+                        ? transaction.originalMerchant : draft.merchant
+                    let key = normalizedMerchantKey(ruleMerchant)
                     if !key.isEmpty {
                         let rules = try context.fetch(FetchDescriptor<StoredMerchantRule>())
                         let matchingRules = rules.filter { $0.merchantKey == key }

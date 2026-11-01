@@ -1,0 +1,56 @@
+{
+  "syntheticSimulatorOnly": true,
+  "accountBalanceKopecks": 1000000,
+  "totalOperations": 15,
+  "metroRows": [
+    {
+      "merchant": "Метро (проверено)",
+      "originalMerchant": "Picker метро",
+      "amountKopecks": 9550,
+      "category": "groceries",
+      "accountID": "same-included-synthetic-account",
+      "editedNotePersisted": true,
+      "noteSHA256": "3e4bb4894c537f6a8d2d351b85f3e310602e57169d1e199c24404b9d455296c5"
+    },
+    {
+      "merchant": "Picker метро",
+      "originalMerchant": "Picker метро",
+      "amountKopecks": 12550,
+      "category": "transport",
+      "accountID": "same-included-synthetic-account",
+      "editedNotePersisted": false
+    },
+    {
+      "merchant": "Picker метро",
+      "originalMerchant": "Picker метро",
+      "amountKopecks": 13550,
+      "category": "transport",
+      "accountID": "same-included-synthetic-account",
+      "editedNotePersisted": false
+    },
+    {
+      "merchant": "Picker метро",
+      "originalMerchant": "Picker метро",
+      "amountKopecks": 14550,
+      "category": "groceries",
+      "accountID": "same-included-synthetic-account",
+      "editedNotePersisted": false
+    }
+  ],
+  "rules": [
+    {
+      "merchantKey": "метро проверено",
+      "category": "groceries"
+    },
+    {
+      "merchantKey": "picker метро",
+      "category": "groceries"
+    }
+  ],
+  "invalidFileRowsStored": 0,
+  "originalRefundCopies": 1,
+  "duplicateConfirmationAdded": 0,
+  "duplicateConfirmationSkipped": 2,
+  "legacyTestRows12550And13550": "retained from unsuccessful harness runs; not recategorized retroactively",
+  "assertions": "passed"
+}

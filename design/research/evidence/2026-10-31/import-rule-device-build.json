@@ -1,0 +1,14 @@
+{
+  "configuration": "Release",
+  "platform": "iphoneos",
+  "architecture": "arm64",
+  "build": "succeeded",
+  "signed": false,
+  "physicalDeviceVerified": false,
+  "installableAsDelivered": false,
+  "bundleID": "com.personal.moneywise",
+  "minimumOSVersion": "17.0",
+  "archive": "work/device-builds/okaneyan-import-rules-unsigned-arm64.zip",
+  "archiveSHA256": "8cd74cb5f84712bad8058f24bdcc06bf6f23412bec5451970ec44ec59d98584a",
+  "log": "/tmp/moneywise-import-rules-final-device-release.log"
+}

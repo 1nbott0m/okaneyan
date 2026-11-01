@@ -101,7 +101,7 @@ final class MoneyWiseUserFlowTests: XCTestCase {
         let importButton = app.buttons["Импортировать операции"]
         XCTAssertTrue(importButton.waitForExistence(timeout: 15))
         importButton.tap()
-        XCTAssertTrue(app.navigationBars["Предпросмотр выписки"].waitForExistence(timeout: 15))
+        XCTAssertTrue(app.navigationBars["Импорт выписки"].waitForExistence(timeout: 15))
         XCTAssertTrue(app.staticTexts["Найдено операций: 1"].exists)
         XCTAssertTrue(app.staticTexts["CSV тест операция"].exists)
         let confirmImport = app.navigationBars.buttons["Импортировать"]
@@ -116,7 +116,7 @@ final class MoneyWiseUserFlowTests: XCTestCase {
         app.launch()
         XCTAssertTrue(app.staticTexts["CSV тест операция"].waitForExistence(timeout: 10), "Импортированная операция должна сохраниться после перезапуска")
         importButton.tap()
-        XCTAssertTrue(app.navigationBars["Предпросмотр выписки"].waitForExistence(timeout: 15))
+        XCTAssertTrue(app.navigationBars["Импорт выписки"].waitForExistence(timeout: 15))
         XCTAssertTrue(app.staticTexts["Уже в истории · пропущу при импорте"].waitForExistence(timeout: 10))
         XCTAssertTrue(app.staticTexts["Новые операции"].exists, "Повторная выписка должна быть распознана как уже импортированная")
         app.navigationBars.buttons["Отмена"].tap()

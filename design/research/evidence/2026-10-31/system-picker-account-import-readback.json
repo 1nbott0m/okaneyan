@@ -1,0 +1,28 @@
+{
+  "syntheticSimulatorOnly": true,
+  "systemPickerUsed": true,
+  "accountBalanceKopecks": 1000000,
+  "totalOperations": 12,
+  "importedRows": [
+    {
+      "merchant": "Picker возврат",
+      "originalMerchant": "Picker возврат",
+      "amountKopecks": 30000,
+      "kind": "refund",
+      "category": "refunds",
+      "sourceID": "csv|f6ff1714993b76f02b0334ee109d3e4baff049a49d32c8ebc9317269ddb0019e|wall:2026-10-29T00:00:00|picker возврат|30000|refund|0",
+      "sourceAccountID": "same-included-synthetic-account"
+    },
+    {
+      "merchant": "Picker метро",
+      "originalMerchant": "Picker метро",
+      "amountKopecks": 9550,
+      "kind": "purchase",
+      "category": "transport",
+      "sourceID": "csv|f6ff1714993b76f02b0334ee109d3e4baff049a49d32c8ebc9317269ddb0019e|wall:2026-10-29T00:00:00|picker метро|9550|purchase|0",
+      "sourceAccountID": "same-included-synthetic-account"
+    }
+  ],
+  "deduplicationPreview": "both existing rows skipped",
+  "assertions": "passed"
+}
